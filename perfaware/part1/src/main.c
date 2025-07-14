@@ -20,6 +20,13 @@ enum OPCODE {
   IMMEDIATE_TO_REGISTER = 0b10110000,
 };
 
+enum MOD {
+  MEMORY_MODE_NO_DISP, // DISP when R/M is 110
+  MEMORY_MODE_8_BIT_DISP,
+  MEMORY_MODE_16_BIT_DISP,
+  REGISTER_MODE,
+};
+
 enum REG_ENCODING {
   AL,
   CL,
@@ -37,6 +44,17 @@ enum REG_ENCODING {
   BP,
   SI,
   DI,
+};
+
+enum RM_ENCODING {
+  BX_SI,
+  BX_DI,
+  BP_SI,
+  BP_DI,
+  SI_,
+  DI_,
+  BP_, // DIRECT_ACCESS when mod 00
+  BX_,
 };
 
 // @param w - 1 bit
@@ -98,18 +116,125 @@ void decodeREG(int w, int reg) {
   }
 }
 
+void decodeMemoryModeNoDisp(int rm) {
+  int disp = rm == 0x011 ? ((nextByte() << 8) | nextByte()) : -1;
+
+  switch (rm) {
+  case BX_SI:
+    printf("[bx + si]");
+    break;
+  case BX_DI:
+    printf("[bx + di]");
+    break;
+  case BP_SI:
+    printf("[bp + si]");
+    break;
+  case BP_DI:
+    printf("[bp + di]");
+    break;
+  case SI_:
+    printf("[si]");
+    break;
+  case DI_:
+    printf("[di]");
+    break;
+  case BP_:
+    disp > 0 ? printf("[bp + %d]", disp) : printf("[bp]");
+    break;
+  case BX_:
+    printf("[bx]");
+    break;
+  default:
+    break;
+  }
+}
+
+void decodeMemoryMode8BitDisp(int rm, int byte) {
+  switch (rm) {
+  case BX_SI:
+    printf("[bx + si + %d]", byte);
+    break;
+  case BX_DI:
+    printf("[bx + di + %d]", byte);
+    break;
+  case BP_SI:
+    printf("[bp + si + %d]", byte);
+    break;
+  case BP_DI:
+    printf("[bp + di + %d]", byte);
+    break;
+  case SI_:
+    printf("[si + %d]", byte);
+    break;
+  case DI_:
+    printf("[di + %d]", byte);
+    break;
+  case BP_:
+    byte > 0 ? printf("[bp + %d]", byte) : printf("[bp]");
+    break;
+  case BX_:
+    printf("[bx + %d]", byte);
+    break;
+  default:
+    break;
+  }
+}
+
+void decodeMemoryMode16BitDisp(int rm, int byte1, int byte2) {
+  int disp = (byte2 << 8) | byte1;
+
+  switch (rm) {
+  case BX_SI:
+    printf("[bx + si + %d]", disp);
+    break;
+  case BX_DI:
+    printf("[bx + di + %d]", disp);
+    break;
+  case BP_SI:
+    printf("[bp + si + %d]", disp);
+    break;
+  case BP_DI:
+    printf("[bp + di + %d]", disp);
+    break;
+  case SI_:
+    printf("[si + %d]", disp);
+    break;
+  case DI_:
+    printf("[di + %d]", disp);
+    break;
+  case BP_:
+    disp > 0 ? printf("[bp + %d]", disp) : printf("[bp]");
+    break;
+  case BX_:
+    printf("[bx + %d]", disp);
+    break;
+  default:
+    break;
+  }
+}
+
 void decodeRM(int byte1, int byte2) {
-  int mod = byte2 & MOV_MOD_MASK;
+  int mod = (byte2 & MOV_MOD_MASK) >> 6;
   int w = byte1 & MOV_W_MASK;
-  int reg = byte2 & MOV_RM_MASK;
+  int rm = byte2 & MOV_RM_MASK;
 
   switch (mod) {
-  case MOV_MOD_MASK: {
-    decodeREG(w, reg);
+  case MEMORY_MODE_NO_DISP: {
+    decodeMemoryModeNoDisp(rm);
+    break;
   }
-  /* code */
-  break;
-
+  case MEMORY_MODE_8_BIT_DISP: {
+    decodeMemoryMode8BitDisp(rm, nextByte());
+    break;
+  }
+  case MEMORY_MODE_16_BIT_DISP: {
+    decodeMemoryMode16BitDisp(rm, nextByte(), nextByte());
+    break;
+  }
+  case REGISTER_MODE: {
+    decodeREG(w, rm);
+    break;
+  }
   default:
     break;
   }
