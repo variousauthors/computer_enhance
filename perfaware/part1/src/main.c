@@ -120,6 +120,7 @@ void decodeByte(int byte) { printf("%d", byte); }
 void decodeBytes(int byte1, int byte2) { printf("%d", (byte2 << 8) | byte1); }
 
 void decodeOpImmediateToRegister(int byte1, int byte2) {
+  fprintf(stderr, "decode imm -> %02X %02X\n", byte1, byte2);
   printf("mov ");
 
   int w = (byte1 & MOV_IMM_W_MASK) >> 3;
@@ -138,6 +139,7 @@ void decodeOpImmediateToRegister(int byte1, int byte2) {
 }
 
 void decodeOpRegisterMemoryToFromRegister(int byte1, int byte2) {
+  fprintf(stderr, "decode reg to reg -> %02X %02X\n", byte1, byte2);
   printf("mov ");
 
   int w = byte1 & MOV_W_MASK;
@@ -175,10 +177,11 @@ int main() {
 
   int byte;
   while ((byte = nextByte()) != EOF) {
-    if ((byte & MOV0) == MOV0) {
-      decodeOpRegisterMemoryToFromRegister(byte, fgetc(file));
-    } else if ((byte & IMMEDIATE_TO_REGISTER) == IMMEDIATE_TO_REGISTER) {
+    fprintf(stderr, "considering -> %02X\n", byte);
+    if ((byte & IMMEDIATE_TO_REGISTER) == IMMEDIATE_TO_REGISTER) {
       decodeOpImmediateToRegister(byte, nextByte());
+    } else if ((byte & MOV0) == MOV0) {
+      decodeOpRegisterMemoryToFromRegister(byte, fgetc(file));
     } else {
       fprintf(stderr, "unknown opcode 0x%02X\n", byte);
     }
