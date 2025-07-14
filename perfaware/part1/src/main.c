@@ -118,7 +118,15 @@ void decodeREG(int w, int reg) {
 }
 
 void decodeMemoryModeNoDisp(int rm) {
-  int disp = rm == 0x011 ? ((nextByte() << 8) | nextByte()) : -1;
+  fprintf(stderr, "decodeMemoryModeNoDisp -> rm: %02X\n", rm);
+
+  int16_t disp = -1;
+  if (rm == 0b110) {
+    int byte0 = nextByte();
+    int byte1 = nextByte();
+    disp = (byte1 << 8) | byte0;
+    fprintf(stderr, "  -> disp: %02X\n", disp);
+  }
 
   switch (rm) {
   case BX_SI:
@@ -140,7 +148,7 @@ void decodeMemoryModeNoDisp(int rm) {
     printf("[di]");
     break;
   case BP_:
-    disp > 0 ? printf("[bp + %d]", disp) : printf("[bp]");
+    disp <= 0 ? printf("[bp]") : printf("[%d]", disp);
     break;
   case BX_:
     printf("[bx]");
@@ -150,7 +158,7 @@ void decodeMemoryModeNoDisp(int rm) {
   }
 }
 
-void decodeMemoryMode8BitDisp(int rm, int byte) {
+void decodeMemoryMode8BitDisp(int rm, int8_t byte) {
   switch (rm) {
   case BX_SI:
     printf("[bx + si + %d]", byte);
@@ -171,7 +179,7 @@ void decodeMemoryMode8BitDisp(int rm, int byte) {
     printf("[di + %d]", byte);
     break;
   case BP_:
-    byte > 0 ? printf("[bp + %d]", byte) : printf("[bp]");
+    byte != 0 ? printf("[bp + %d]", byte) : printf("[bp]");
     break;
   case BX_:
     printf("[bx + %d]", byte);
@@ -204,7 +212,7 @@ void decodeMemoryMode16BitDisp(int rm, int byte1, int byte2) {
     printf("[di + %d]", disp);
     break;
   case BP_:
-    disp > 0 ? printf("[bp + %d]", disp) : printf("[bp]");
+    disp != 0 ? printf("[bp + %d]", disp) : printf("[bp]");
     break;
   case BX_:
     printf("[bx + %d]", disp);
@@ -218,6 +226,8 @@ void decodeRM(int byte1, int byte2) {
   int mod = (byte2 & MOV_MOD_MASK) >> 6;
   int w = byte1 & MOV_W_MASK;
   int rm = byte2 & MOV_RM_MASK;
+
+  fprintf(stderr, "decodeRM -> %02X %02X %02X\n", w, mod, rm);
 
   switch (mod) {
   case MEMORY_MODE_NO_DISP: {
@@ -284,15 +294,12 @@ void decodeOpImmediateToRegister(int byte1, int byte2) {
 }
 
 void decodeOpRegisterMemoryToFromRegister(int byte1, int byte2) {
-  fprintf(stderr, "decode reg to reg -> %02X %02X\n", byte1, byte2);
+  fprintf(stderr, "decode reg/mem to reg -> %02X %02X\n", byte1, byte2);
   printf("mov ");
 
   int w = byte1 & MOV_W_MASK;
   int reg = (byte2 & MOV_REG_MASK) >> 3;
 
-  // fprintf(stderr, "OP -> w: %02X, reg: %02X\n", w, reg);
-
-  // read D
   if (byte1 & MOV_D_MASK) {
     // reg is dest
     decodeREG(w, reg);
@@ -326,9 +333,9 @@ int main() {
     if ((byte & IMM_TO_REGISTER) == IMM_TO_REGISTER) {
       decodeOpImmediateToRegister(byte, nextByte());
     } else if ((byte & MOV0) == MOV0) {
-      decodeOpRegisterMemoryToFromRegister(byte, fgetc(file));
+      decodeOpRegisterMemoryToFromRegister(byte, nextByte());
     } else if ((byte & IMM_TO_REGISTER_MEMORY) == IMM_TO_REGISTER_MEMORY) {
-      decodeOpImmediateToRegisterMemory(byte, fgetc(file));
+      decodeOpImmediateToRegisterMemory(byte, nextByte());
     } else {
       fprintf(stderr, "unknown opcode 0x%02X\n", byte);
     }
