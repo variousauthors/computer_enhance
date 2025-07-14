@@ -17,7 +17,8 @@ FILE *file;
 
 enum OPCODE {
   MOV0 = 0b10001000,
-  IMMEDIATE_TO_REGISTER = 0b10110000,
+  IMM_TO_REGISTER_MEMORY = 0b11000110,
+  IMM_TO_REGISTER = 0b10110000,
 };
 
 enum MOD {
@@ -244,6 +245,25 @@ void decodeByte(int byte) { printf("%d", byte); }
 
 void decodeBytes(int byte1, int byte2) { printf("%d", (byte2 << 8) | byte1); }
 
+void decodeOpImmediateToRegisterMemory(int byte1, int byte2) {
+  // byte1 byte2 (DISP_LO) (DISP_HI) data (data if w = 1)
+  fprintf(stderr, "decode imm to mem -> %02X %02X\n", byte1, byte2);
+  printf("mov ");
+
+  decodeRM(byte1, byte2);
+  printf(", ");
+
+  if (byte1 & MOV_W_MASK) {
+    printf("word ");
+    decodeBytes(nextByte(), nextByte());
+  } else {
+    printf("byte ");
+    decodeByte(nextByte());
+  }
+
+  printf("\n");
+}
+
 void decodeOpImmediateToRegister(int byte1, int byte2) {
   fprintf(stderr, "decode imm -> %02X %02X\n", byte1, byte2);
   printf("mov ");
@@ -290,7 +310,7 @@ void decodeOpRegisterMemoryToFromRegister(int byte1, int byte2) {
 
 int main() {
   // read the file
-  file = fopen("listing_0039_more_movs", "rb");
+  file = fopen("listing_0040_challenge_movs", "rb");
 
   if (file == NULL) {
     perror("Error opening file");
@@ -303,10 +323,12 @@ int main() {
   int byte;
   while ((byte = nextByte()) != EOF) {
     fprintf(stderr, "considering -> %02X\n", byte);
-    if ((byte & IMMEDIATE_TO_REGISTER) == IMMEDIATE_TO_REGISTER) {
+    if ((byte & IMM_TO_REGISTER) == IMM_TO_REGISTER) {
       decodeOpImmediateToRegister(byte, nextByte());
     } else if ((byte & MOV0) == MOV0) {
       decodeOpRegisterMemoryToFromRegister(byte, fgetc(file));
+    } else if ((byte & IMM_TO_REGISTER_MEMORY) == IMM_TO_REGISTER_MEMORY) {
+      decodeOpImmediateToRegisterMemory(byte, fgetc(file));
     } else {
       fprintf(stderr, "unknown opcode 0x%02X\n", byte);
     }
