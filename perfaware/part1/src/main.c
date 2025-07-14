@@ -16,9 +16,11 @@ FILE *file;
 #define nextByte() (fgetc(file))
 
 enum OPCODE {
+  MEM_TO_ACC = 0b10100000,
+  IMM_TO_REGISTER = 0b10110000,
   MOV0 = 0b10001000,
   IMM_TO_REGISTER_MEMORY = 0b11000110,
-  IMM_TO_REGISTER = 0b10110000,
+  ACC_TO_MEM = 0b10100010,
 };
 
 enum MOD {
@@ -274,6 +276,34 @@ void decodeOpImmediateToRegisterMemory(int byte1, int byte2) {
   printf("\n");
 }
 
+void decodeOpMemoryToAccumulator(int byte1) {
+  printf("mov ");
+
+  int w = byte1 & MOV_W_MASK;
+
+  // always accumulator reg = 0
+  decodeREG(w, 0);
+  printf(", ");
+  // kind of hacky, but we know we want [16-bit immediate]
+  // and we know this does it
+  decodeMemoryModeNoDisp(BP_);
+  printf("\n");
+}
+
+void decodeOpAccumulatorToMemory(int byte1) {
+  printf("mov ");
+
+  int w = byte1 & MOV_W_MASK;
+
+  // kind of hacky, but we know we want [16-bit immediate]
+  // and we know this does it
+  decodeMemoryModeNoDisp(BP_);
+  printf(", ");
+  // always accumulator reg = 0
+  decodeREG(w, 0);
+  printf("\n");
+}
+
 void decodeOpImmediateToRegister(int byte1, int byte2) {
   fprintf(stderr, "decode imm -> %02X %02X\n", byte1, byte2);
   printf("mov ");
@@ -330,7 +360,11 @@ int main() {
   int byte;
   while ((byte = nextByte()) != EOF) {
     fprintf(stderr, "considering -> %02X\n", byte);
-    if ((byte & IMM_TO_REGISTER) == IMM_TO_REGISTER) {
+    if ((byte & ACC_TO_MEM) == ACC_TO_MEM) {
+      decodeOpAccumulatorToMemory(byte);
+    } else if ((byte & MEM_TO_ACC) == MEM_TO_ACC) {
+      decodeOpMemoryToAccumulator(byte);
+    } else if ((byte & IMM_TO_REGISTER) == IMM_TO_REGISTER) {
       decodeOpImmediateToRegister(byte, nextByte());
     } else if ((byte & MOV0) == MOV0) {
       decodeOpRegisterMemoryToFromRegister(byte, nextByte());
