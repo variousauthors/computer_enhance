@@ -1,7 +1,12 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #define BIT_D_MASK 0b00000010
 #define BIT_W_MASK 0b00000001
+#define REG_MASK 0b00111000
+
+#define IMED_SIGN_EXT_MASK BIT_D_MASK
+#define IMED_CODE_MASK REG_MASK
 
 #define MOV_W_MASK 0b00000001
 #define MOV_D_MASK 0b00000010
@@ -59,9 +64,131 @@ enum RM_ENCODING {
   BX_,
 };
 
+enum IMED_CODE {
+  IMED_ADD,
+  IMED_OR,
+  IMED_ADC,
+  IMED_SBB,
+  IMED_AND,
+  IMED_SUB,
+  IMED_XOR,
+  IMED_CMP,
+};
+
+void decodeRegisterMemoryToFromRegister(int byte1, int byte2) {
+  int w = byte1 & BIT_W_MASK;
+  int d = byte1 & BIT_D_MASK;
+  int reg = (byte2 & REG_MASK) >> 3;
+
+  if (d) {
+    // reg is dest
+    decodeREG(w, reg);
+    printf(", ");
+    decodeRM(byte1, byte2);
+    printf("\n");
+  } else {
+    // reg is source
+    decodeRM(byte1, byte2);
+    printf(", ");
+    decodeREG(w, reg);
+    printf("\n");
+  }
+}
+
 void NOOP(int byte0) {
   printf("NO_OP %02X\n", byte0);
   return;
+}
+
+// add register/memory to/from register
+void ADD_(int byte1) {
+  int byte2 = nextByte();
+  fprintf(stderr, "ADD -> %02X %02X\n", byte1, byte2);
+  printf("add ");
+
+  decodeRegisterMemoryToFromRegister(byte1, byte2);
+}
+
+// add immediate to accumulator
+void ADDA(int byte1) {
+  printf("add ");
+
+  int w = byte1 & BIT_W_MASK;
+
+  fprintf(stderr, "ADDA w: %02X\n", w);
+
+  // always accumulator reg = 0
+  decodeREG(w, 0);
+  printf(", ");
+
+  if (w) {
+    decodeBytes(nextByte(), nextByte());
+  } else {
+    decodeByte(nextByte());
+  }
+
+  printf("\n");
+}
+
+// immediate mode add, sub, cmp
+void IMED(int byte1) {
+  int byte2 = nextByte();
+  int code = byte1 & IMED_CODE_MASK;
+
+  switch (code) {
+  case IMED_ADD:
+    printf("add ");
+    break;
+  default:
+    fprintf(stderr, "unknown imed code %02X\n", code);
+    exit(1);
+    break;
+  }
+
+  int s = byte1 & IMED_SIGN_EXT_MASK;
+  int w = byte1 & BIT_W_MASK;
+
+  fprintf(stderr, "IMED -> %02X %02X\n", byte1, byte2);
+
+  // when we write to [bx] some address
+  // some data like 44 we need to specify whether
+  // we want to write 1 byte or 2
+  if (w) {
+    printf("word ");
+  } else {
+    printf("byte ");
+  }
+
+  decodeRM(byte1, byte2);
+  printf(", ");
+
+  switch (s | w) {
+  case 0b00: {
+    decodeByte(nextByte());
+    break;
+  }
+  case 0b01: {
+    decodeBytes(nextByte(), nextByte());
+    break;
+  }
+  case 0b10: {
+    // redundant? but it's in the table
+    decodeByte(nextByte());
+    break;
+  }
+  case 0b11: {
+    // sign extended 8-bit data to 16-bits
+    int byte3 = nextByte();
+    decodeBytes(byte3 & 0x00FF, (byte3 & 0xFF00) >> 8);
+    break;
+  }
+  default:
+    fprintf(stderr, "unknown values for s|w %02X\n", code);
+    exit(1);
+    break;
+  }
+
+  printf("\n");
 }
 
 // memory to accumulator / accumulator to memory
@@ -104,22 +231,7 @@ void MOVR(int byte1) {
   fprintf(stderr, "MOVR -> %02X %02X\n", byte1, byte2);
   printf("mov ");
 
-  int w = byte1 & MOV_W_MASK;
-  int reg = (byte2 & MOV_REG_MASK) >> 3;
-
-  if (byte1 & MOV_D_MASK) {
-    // reg is dest
-    decodeREG(w, reg);
-    printf(", ");
-    decodeRM(byte1, byte2);
-    printf("\n");
-  } else {
-    // reg is source
-    decodeRM(byte1, byte2);
-    printf(", ");
-    decodeREG(w, reg);
-    printf("\n");
-  }
+  decodeRegisterMemoryToFromRegister(byte1, byte2);
 }
 
 // immediate to register
@@ -165,6 +277,7 @@ void MOVK(int byte1) {
 
 // clang-format off
 void (*opTable[16][16])(int byte0) = {
+    {ADD_, ADD_, ADD_, ADD_, ADDA, ADDA, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
@@ -172,8 +285,7 @@ void (*opTable[16][16])(int byte0) = {
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
-    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
-    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, MOVR, MOVR, MOVR, MOVR, NOOP, NOOP, NOOP, NOOP},
+    {IMED, IMED, IMED, IMED, NOOP, NOOP, NOOP, NOOP, MOVR, MOVR, MOVR, MOVR, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {MOVA, MOVA, MOVA, MOVA, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI},
@@ -383,7 +495,7 @@ void decodeBytes(int byte1, int byte2) { printf("%d", (byte2 << 8) | byte1); }
 
 int main() {
   // read the file
-  file = fopen("listing_0040_challenge_movs", "rb");
+  file = fopen("listing_0041_add_sub_cmp_jnz", "rb");
   // file = fopen("listing_0039_more_movs", "rb");
 
   if (file == NULL) {
