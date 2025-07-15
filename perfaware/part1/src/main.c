@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+uint16_t *REGISTERS[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 #define BIT_D_MASK 0b00000010
 #define BIT_W_MASK 0b00000001
@@ -17,15 +20,20 @@
 #define MOV_IMM_W_MASK 0b00001000
 #define MOV_IMM_REG_MASK 0b00000111
 
-FILE *file;
+FILE *source;
 
-#define nextByte() (fgetc(file))
+uint8_t exec = 0;
+uint8_t verbose = 0;
 
-void decodeREG(int w, int reg);
-void decodeRM(int byte1, int byte2);
-void decodeMemoryModeNoDisp(int rm);
-void decodeByte(int byte);
-void decodeBytes(int byte1, int byte2);
+FILE *verboseChannel = 0;
+
+#define nextByte() (fgetc(source))
+
+void disassembleREG(int w, int reg);
+void disassembleRM(int byte1, int byte2);
+void disassembleMemoryModeNoDisp(int rm);
+void disassembleByte(int byte);
+void disassembleBytes(int byte1, int byte2);
 
 enum MOD {
   MEMORY_MODE_NO_DISP, // DISP when R/M is 110
@@ -79,13 +87,13 @@ void decodeImmediateToAccumulator(int byte1) {
   int w = byte1 & BIT_W_MASK;
 
   // always accumulator reg = 0
-  decodeREG(w, 0);
+  disassembleREG(w, 0);
   printf(", ");
 
   if (w) {
-    decodeBytes(nextByte(), nextByte());
+    disassembleBytes(nextByte(), nextByte());
   } else {
-    decodeByte(nextByte());
+    disassembleByte(nextByte());
   }
 
   printf("\n");
@@ -100,15 +108,15 @@ void decodeRegisterMemoryToFromRegister(int byte1) {
 
   if (d) {
     // reg is dest
-    decodeREG(w, reg);
+    disassembleREG(w, reg);
     printf(", ");
-    decodeRM(byte1, byte2);
+    disassembleRM(byte1, byte2);
     printf("\n");
   } else {
     // reg is source
-    decodeRM(byte1, byte2);
+    disassembleRM(byte1, byte2);
     printf(", ");
-    decodeREG(w, reg);
+    disassembleREG(w, reg);
     printf("\n");
   }
 }
@@ -120,7 +128,7 @@ void NOOP(int byte0) {
 
 // add register/memory to/from register
 void ADD_(int byte1) {
-  fprintf(stderr, "ADD -> %02X\n", byte1);
+  fprintf(verboseChannel, "ADD -> %02X\n", byte1);
   printf("add ");
 
   decodeRegisterMemoryToFromRegister(byte1);
@@ -128,7 +136,7 @@ void ADD_(int byte1) {
 
 // add register/memory to/from register
 void SUB_(int byte1) {
-  fprintf(stderr, "SUB -> %02X\n", byte1);
+  fprintf(verboseChannel, "SUB -> %02X\n", byte1);
   printf("sub ");
 
   decodeRegisterMemoryToFromRegister(byte1);
@@ -136,7 +144,7 @@ void SUB_(int byte1) {
 
 // compare register/memory with register
 void CMP_(int byte1) {
-  fprintf(stderr, "CMP_ -> %02X\n", byte1);
+  fprintf(verboseChannel, "CMP_ -> %02X\n", byte1);
   printf("cmp ");
 
   decodeRegisterMemoryToFromRegister(byte1);
@@ -144,7 +152,7 @@ void CMP_(int byte1) {
 
 // register/memory to/from register
 void MOV_(int byte1) {
-  fprintf(stderr, "MOVR -> %02X\n", byte1);
+  fprintf(verboseChannel, "MOVR -> %02X\n", byte1);
   printf("mov ");
 
   decodeRegisterMemoryToFromRegister(byte1);
@@ -153,7 +161,7 @@ void MOV_(int byte1) {
 // add immediate to accumulator
 void ADDA(int byte1) {
   printf("add ");
-  fprintf(stderr, "ADDA -> %02X\n", byte1);
+  fprintf(verboseChannel, "ADDA -> %02X\n", byte1);
 
   decodeImmediateToAccumulator(byte1);
 }
@@ -161,7 +169,7 @@ void ADDA(int byte1) {
 // immediate with accumulator
 void CMPA(int byte1) {
   printf("cmp ");
-  fprintf(stderr, "CMPA -> %02X\n", byte1);
+  fprintf(verboseChannel, "CMPA -> %02X\n", byte1);
 
   decodeImmediateToAccumulator(byte1);
 }
@@ -171,7 +179,7 @@ void CMPA(int byte1) {
 // register/memory
 void SUBA(int byte1) {
   printf("sub ");
-  fprintf(stderr, "SUBA -> %02X\n", byte1);
+  fprintf(verboseChannel, "SUBA -> %02X\n", byte1);
 
   decodeImmediateToAccumulator(byte1);
 }
@@ -183,7 +191,7 @@ void MOVA(int byte0) {
   int d = byte0 & BIT_D_MASK;
   int w = byte0 & BIT_W_MASK;
 
-  fprintf(stderr, "MOVA d: %02X w: %02X\n", d, w);
+  fprintf(verboseChannel, "MOVA d: %02X w: %02X\n", d, w);
 
   // logic for the d bit is inverted for
   // immediate to acc / acc to immediate
@@ -191,18 +199,18 @@ void MOVA(int byte0) {
   // 1010001w - AX is source
   if (!d) {
     // always accumulator reg = 0
-    decodeREG(w, 0);
+    disassembleREG(w, 0);
     printf(", ");
     // kind of hacky, but we know we want [16-bit immediate]
     // and we know this does it
-    decodeMemoryModeNoDisp(BP_);
+    disassembleMemoryModeNoDisp(BP_);
   } else {
     // kind of hacky, but we know we want [16-bit immediate]
     // and we know this does it
-    decodeMemoryModeNoDisp(BP_);
+    disassembleMemoryModeNoDisp(BP_);
     printf(", ");
     // always accumulator reg = 0
-    decodeREG(w, 0);
+    disassembleREG(w, 0);
   }
 
   printf("\n");
@@ -213,11 +221,11 @@ void MOVA(int byte0) {
 // immediate mode add, sub, cmp
 void IMED(int byte1) {
   int byte2 = nextByte();
-  fprintf(stderr, "IMED -> %02X %02X\n", byte1, byte2);
+  fprintf(verboseChannel, "IMED -> %02X %02X\n", byte1, byte2);
 
   int code = (byte2 & IMED_CODE_MASK) >> 3;
 
-  fprintf(stderr, "IMED -> code: %02X\n", code);
+  fprintf(verboseChannel, "IMED -> code: %02X\n", code);
 
   switch (code) {
   case IMED_ADD:
@@ -244,27 +252,27 @@ void IMED(int byte1) {
     printf("byte ");
   }
 
-  decodeRM(byte1, byte2);
+  disassembleRM(byte1, byte2);
   printf(", ");
 
   switch (s | w) {
   case 0b00: {
-    decodeByte(nextByte());
+    disassembleByte(nextByte());
     break;
   }
   case 0b01: {
-    decodeBytes(nextByte(), nextByte());
+    disassembleBytes(nextByte(), nextByte());
     break;
   }
   case 0b10: {
     // redundant? but it's in the table
-    decodeByte(nextByte());
+    disassembleByte(nextByte());
     break;
   }
   case 0b11: {
     // sign extended 8-bit data to 16-bits
     int byte3 = nextByte();
-    decodeBytes(byte3 & 0x00FF, (byte3 & 0xFF00) >> 8);
+    disassembleBytes(byte3 & 0x00FF, (byte3 & 0xFF00) >> 8);
     break;
   }
   default:
@@ -278,19 +286,19 @@ void IMED(int byte1) {
 
 // immediate to register
 void MOVI(int byte) {
-  fprintf(stderr, "MOVI\n");
+  fprintf(verboseChannel, "MOVI\n");
   printf("mov ");
 
   int w = (byte & MOV_IMM_W_MASK) >> 3;
   int reg = (byte & MOV_IMM_REG_MASK);
 
-  decodeREG(w, reg);
+  disassembleREG(w, reg);
   printf(", ");
 
   if (byte & MOV_IMM_W_MASK) {
-    decodeBytes(nextByte(), nextByte());
+    disassembleBytes(nextByte(), nextByte());
   } else {
-    decodeByte(nextByte());
+    disassembleByte(nextByte());
   }
 
   printf("\n");
@@ -300,18 +308,18 @@ void MOVI(int byte) {
 void MOVR(int byte1) {
   int byte2 = nextByte();
   // byte1 byte2 (DISP_LO) (DISP_HI) data (data if w = 1)
-  fprintf(stderr, "MOVK -> %02X %02X\n", byte1, byte2);
+  fprintf(verboseChannel, "MOVK -> %02X %02X\n", byte1, byte2);
   printf("mov ");
 
-  decodeRM(byte1, byte2);
+  disassembleRM(byte1, byte2);
   printf(", ");
 
   if (byte1 & MOV_W_MASK) {
     printf("word ");
-    decodeBytes(nextByte(), nextByte());
+    disassembleBytes(nextByte(), nextByte());
   } else {
     printf("byte ");
-    decodeByte(nextByte());
+    disassembleByte(nextByte());
   }
 
   printf("\n");
@@ -324,7 +332,7 @@ void MOVR(int byte1) {
 #define JUMP(op)                                                               \
   do {                                                                         \
     printf("%s ", op);                                                         \
-    decodeByte(nextByte());                                                    \
+    disassembleByte(nextByte());                                               \
     printf("\n");                                                              \
   } while (0)
 
@@ -358,29 +366,30 @@ void JCXZ(int byte1) { JUMP("jcxz"); }
 
 // clang-format off
 void (*opTable[16][16])(int byte0) = {
-    {ADD_, ADD_, ADD_, ADD_, ADDA, ADDA, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
-    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
-    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, SUB_, SUB_, SUB_, SUB_, SUBA, SUBA, NOOP, NOOP},
-    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, CMP_, CMP_, CMP_, CMP_, CMPA, CMPA, NOOP, NOOP},
-    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
-    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
-    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
-    {JO__, JNO_, JB__, JNB_, JE__, JNZ_, JBE_, JNBE, JS__, JNS_, JP__, JNP_, JL__, JNL_, JLE_, JNLE},
-    {IMED, IMED, IMED, IMED, NOOP, NOOP, NOOP, NOOP, MOV_, MOV_, MOV_, MOV_, NOOP, NOOP, NOOP, NOOP},
-    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
-    {MOVA, MOVA, MOVA, MOVA, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
-    {MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI},
-    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, MOVR, MOVR, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
-    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
-    {LPNZ, LOPZ, LOOP, JCXZ, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
-    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+/* hi\lo  0     1     2     3     4     5     6     7     8     9     A     B     C     D     E     F */
+/* 0 */ {ADD_, ADD_, ADD_, ADD_, ADDA, ADDA, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+/* 1 */ {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+/* 2 */ {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, SUB_, SUB_, SUB_, SUB_, SUBA, SUBA, NOOP, NOOP},
+/* 3 */ {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, CMP_, CMP_, CMP_, CMP_, CMPA, CMPA, NOOP, NOOP},
+/* 4 */ {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+/* 5 */ {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+/* 6 */ {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+/* 7 */ {JO__, JNO_, JB__, JNB_, JE__, JNZ_, JBE_, JNBE, JS__, JNS_, JP__, JNP_, JL__, JNL_, JLE_, JNLE},
+/* 8 */ {IMED, IMED, IMED, IMED, NOOP, NOOP, NOOP, NOOP, MOV_, MOV_, MOV_, MOV_, NOOP, NOOP, NOOP, NOOP},
+/* 9 */ {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+/* A */ {MOVA, MOVA, MOVA, MOVA, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+/* B */ {MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI},
+/* C */ {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, MOVR, MOVR, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+/* D */ {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+/* E */ {LPNZ, LOPZ, LOOP, JCXZ, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+/* F */ {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
 };
 // clang-format on
 
 // @param w - 1 bit
 // @param reg - 3 bits
-void decodeREG(int w, int reg) {
-  // fprintf(stderr, "decodeREG -> w: %02X, reg: %02X\n", w, reg);
+void disassembleREG(int w, int reg) {
+  // fprintf(verboseChannel, "decodeREG -> w: %02X, reg: %02X\n", w, reg);
 
   switch ((w << 3) | (reg)) {
   case AL:
@@ -436,15 +445,15 @@ void decodeREG(int w, int reg) {
   }
 }
 
-void decodeMemoryModeNoDisp(int rm) {
-  fprintf(stderr, "decodeMemoryModeNoDisp -> rm: %02X\n", rm);
+void disassembleMemoryModeNoDisp(int rm) {
+  fprintf(verboseChannel, "decodeMemoryModeNoDisp -> rm: %02X\n", rm);
 
   int16_t disp = -1;
   if (rm == 0b110) {
     int byte0 = nextByte();
     int byte1 = nextByte();
     disp = (byte1 << 8) | byte0;
-    fprintf(stderr, "  -> disp: %02X\n", disp);
+    fprintf(verboseChannel, "  -> disp: %02X\n", disp);
   }
 
   switch (rm) {
@@ -477,7 +486,7 @@ void decodeMemoryModeNoDisp(int rm) {
   }
 }
 
-void decodeMemoryMode8BitDisp(int rm, int8_t byte) {
+void disassemblyMemoryMode8BitDisp(int rm, int8_t byte) {
   switch (rm) {
   case BX_SI:
     printf("[bx + si + %d]", byte);
@@ -508,7 +517,7 @@ void decodeMemoryMode8BitDisp(int rm, int8_t byte) {
   }
 }
 
-void decodeMemoryMode16BitDisp(int rm, int byte1, int byte2) {
+void disassembleMemoryMode16BitDisp(int rm, int byte1, int byte2) {
   int disp = (byte2 << 8) | byte1;
 
   switch (rm) {
@@ -541,28 +550,28 @@ void decodeMemoryMode16BitDisp(int rm, int byte1, int byte2) {
   }
 }
 
-void decodeRM(int byte1, int byte2) {
+void disassembleRM(int byte1, int byte2) {
   int mod = (byte2 & MOV_MOD_MASK) >> 6;
   int w = byte1 & MOV_W_MASK;
   int rm = byte2 & MOV_RM_MASK;
 
-  fprintf(stderr, "decodeRM -> %02X %02X %02X\n", w, mod, rm);
+  fprintf(verboseChannel, "decodeRM -> %02X %02X %02X\n", w, mod, rm);
 
   switch (mod) {
   case MEMORY_MODE_NO_DISP: {
-    decodeMemoryModeNoDisp(rm);
+    disassembleMemoryModeNoDisp(rm);
     break;
   }
   case MEMORY_MODE_8_BIT_DISP: {
-    decodeMemoryMode8BitDisp(rm, nextByte());
+    disassemblyMemoryMode8BitDisp(rm, nextByte());
     break;
   }
   case MEMORY_MODE_16_BIT_DISP: {
-    decodeMemoryMode16BitDisp(rm, nextByte(), nextByte());
+    disassembleMemoryMode16BitDisp(rm, nextByte(), nextByte());
     break;
   }
   case REGISTER_MODE: {
-    decodeREG(w, rm);
+    disassembleREG(w, rm);
     break;
   }
   default:
@@ -570,19 +579,36 @@ void decodeRM(int byte1, int byte2) {
   }
 }
 
-void decodeByte(int byte) { printf("%d", byte); }
+void disassembleByte(int byte) { printf("%d", byte); }
 
-void decodeBytes(int byte1, int byte2) { printf("%d", (byte2 << 8) | byte1); }
+void disassembleBytes(int byte1, int byte2) {
+  printf("%d", (byte2 << 8) | byte1);
+}
 
-int main() {
-  // read the file
-  file = fopen("listing_0041_add_sub_cmp_jnz", "rb");
-  // file = fopen("listing_0039_more_movs", "rb");
+int main(int argc, char *argv[]) {
+  // last arg is always the filename
+  source = fopen(argv[argc - 1], "rb");
 
-  if (file == NULL) {
+  if (source == NULL) {
     perror("Error opening file");
 
     return 1;
+  }
+
+  for (int i = 1; i < argc; i++) {
+    if (strcmp(argv[i], "-exec") == 0) {
+      exec = 1;
+    }
+
+    if (strcmp(argv[i], "-v") == 0) {
+      verbose = 1;
+    }
+  }
+
+  if (verbose) {
+    verboseChannel = stderr;
+  } else {
+    verboseChannel = fopen("/dev/null", "w");
   }
 
   printf("bits 16\n");
@@ -592,10 +618,10 @@ int main() {
     int lo = (byte & 0b00001111);
     int hi = (byte & 0b11110000) >> 4;
 
-    fprintf(stderr, "considering -> %1X, %1X\n", hi, lo);
+    fprintf(verboseChannel, "considering -> %1X, %1X\n", hi, lo);
 
     opTable[hi][lo](byte);
   }
 
-  fclose(file);
+  fclose(source);
 }
