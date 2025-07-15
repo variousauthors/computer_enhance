@@ -10,6 +10,7 @@ uint8_t verbose;
 FILE *verboseChannel;
 FILE *source;
 
+#define ArrayCount(arr) (sizeof(arr) / sizeof((arr)[0]))
 #define nextByte() (fgetc(source))
 
 #endif

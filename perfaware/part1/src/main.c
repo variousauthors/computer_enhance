@@ -49,5 +49,12 @@ int main(int argc, char *argv[]) {
     opTable[hi][lo](byte);
   }
 
+  if (exec) {
+    printf("registers:\n");
+    for (int i = 0; i < ArrayCount(REGISTERS); i++) {
+      printf("%d: %02X\n", i, REGISTERS[i]);
+    }
+  }
+
   fclose(source);
 }

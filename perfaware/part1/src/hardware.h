@@ -1,6 +1,8 @@
 #ifndef HARDWARE_INC
 #define HARDWARE_INC
 
+#include <stdint.h>
+
 #define BIT_D_MASK 0b00000010
 #define BIT_W_MASK 0b00000001
 #define REG_MASK 0b00111000
@@ -17,6 +19,8 @@
 #define MOV_IMM_W_MASK 0b00001000
 #define MOV_IMM_REG_MASK 0b00000111
 
+uint16_t REGISTERS[8];
+
 enum MOD {
   MEMORY_MODE_NO_DISP, // DISP when R/M is 110
   MEMORY_MODE_8_BIT_DISP,
@@ -24,7 +28,7 @@ enum MOD {
   REGISTER_MODE,
 };
 
-enum REG_ENCODING {
+typedef enum REG_ENCODING {
   AL,
   CL,
   DL,
@@ -41,7 +45,7 @@ enum REG_ENCODING {
   BP,
   SI,
   DI,
-};
+} REG_ENCODING;
 
 enum RM_ENCODING {
   BX_SI,
@@ -64,5 +68,8 @@ enum IMED_CODE {
   IMED_XOR,
   IMED_CMP,
 };
+
+void registerStore8(int w, REG_ENCODING reg, uint8_t byte1);
+void registerStore16(int w, REG_ENCODING reg, uint8_t byte1, uint8_t byte2);
 
 #endif

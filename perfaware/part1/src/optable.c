@@ -182,9 +182,20 @@ void MOVI(int byte) {
   printf(", ");
 
   if (byte & MOV_IMM_W_MASK) {
-    disassembleBytes(nextByte(), nextByte());
+    int byte1 = nextByte();
+    int byte2 = nextByte();
+    disassembleBytes(byte1, byte2);
+
+    if (exec) {
+      registerStore16(w, reg, byte1, byte2);
+    }
   } else {
-    disassembleByte(nextByte());
+    int byte1 = nextByte();
+    disassembleByte(byte1);
+
+    if (exec) {
+      registerStore8(w, reg, byte1);
+    }
   }
 
   printf("\n");
