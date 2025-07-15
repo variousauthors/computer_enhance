@@ -238,6 +238,12 @@ void IMED(int byte1) {
   int s = byte1 & IMED_SIGN_EXT_MASK;
   int w = byte1 & BIT_W_MASK;
 
+  if (w) {
+    printf("word ");
+  } else {
+    printf("byte ");
+  }
+
   decodeRM(byte1, byte2);
   printf(", ");
 
@@ -311,6 +317,45 @@ void MOVR(int byte1) {
   printf("\n");
 }
 
+/*********
+ * JUMPS *
+ *********/
+
+#define JUMP(op)                                                               \
+  do {                                                                         \
+    printf("%s ", op);                                                         \
+    decodeByte(nextByte());                                                    \
+    printf("\n");                                                              \
+  } while (0)
+
+void JNZ_(int byte1) { JUMP("jnz"); }
+void JE__(int byte1) { JUMP("je"); }
+void JL__(int byte1) { JUMP("jl"); }
+void JLE_(int byte1) { JUMP("jle"); }
+void JNLE(int byte1) { JUMP("jnle"); }
+void JB__(int byte1) { JUMP("jb"); }
+void JBE_(int byte1) { JUMP("jbe"); }
+void JNBE(int byte1) { JUMP("jnbe"); }
+void JP__(int byte1) { JUMP("jp"); }
+void JO__(int byte1) { JUMP("jo"); }
+void JS__(int byte1) { JUMP("js"); }
+void JNE_(int byte1) { JUMP("jne"); }
+void JNL_(int byte1) { JUMP("jnl"); }
+void JG__(int byte1) { JUMP("jg"); }
+void JNB_(int byte1) { JUMP("jnb"); }
+void JA__(int byte1) { JUMP("ja"); }
+void JNP_(int byte1) { JUMP("jnp"); }
+void JNO_(int byte1) { JUMP("jno"); }
+void JNS_(int byte1) { JUMP("jns"); }
+void LOOP(int byte1) { JUMP("loop"); }
+void LOPZ(int byte1) { JUMP("loopz"); }
+void LPNZ(int byte1) { JUMP("loopnz"); }
+void JCXZ(int byte1) { JUMP("jcxz"); }
+
+/*************
+ * JUMPS END *
+ *************/
+
 // clang-format off
 void (*opTable[16][16])(int byte0) = {
     {ADD_, ADD_, ADD_, ADD_, ADDA, ADDA, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
@@ -320,14 +365,14 @@ void (*opTable[16][16])(int byte0) = {
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
-    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+    {JO__, JNO_, JB__, JNB_, JE__, JNZ_, JBE_, JNBE, JS__, JNS_, JP__, JNP_, JL__, JNL_, JLE_, JNLE},
     {IMED, IMED, IMED, IMED, NOOP, NOOP, NOOP, NOOP, MOV_, MOV_, MOV_, MOV_, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {MOVA, MOVA, MOVA, MOVA, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, MOVR, MOVR, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
-    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+    {LPNZ, LOPZ, LOOP, JCXZ, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
 };
 // clang-format on
