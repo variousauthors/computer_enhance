@@ -134,6 +134,14 @@ void SUB_(int byte1) {
   decodeRegisterMemoryToFromRegister(byte1);
 }
 
+// compare register/memory with register
+void CMP_(int byte1) {
+  fprintf(stderr, "CMP_ -> %02X\n", byte1);
+  printf("cmp ");
+
+  decodeRegisterMemoryToFromRegister(byte1);
+}
+
 // register/memory to/from register
 void MOV_(int byte1) {
   fprintf(stderr, "MOVR -> %02X\n", byte1);
@@ -146,6 +154,14 @@ void MOV_(int byte1) {
 void ADDA(int byte1) {
   printf("add ");
   fprintf(stderr, "ADDA -> %02X\n", byte1);
+
+  decodeImmediateToAccumulator(byte1);
+}
+
+// immediate with accumulator
+void CMPA(int byte1) {
+  printf("cmp ");
+  fprintf(stderr, "CMPA -> %02X\n", byte1);
 
   decodeImmediateToAccumulator(byte1);
 }
@@ -197,7 +213,11 @@ void MOVA(int byte0) {
 // immediate mode add, sub, cmp
 void IMED(int byte1) {
   int byte2 = nextByte();
-  int code = byte1 & IMED_CODE_MASK;
+  fprintf(stderr, "IMED -> %02X %02X\n", byte1, byte2);
+
+  int code = (byte2 & IMED_CODE_MASK) >> 3;
+
+  fprintf(stderr, "IMED -> code: %02X\n", code);
 
   switch (code) {
   case IMED_ADD:
@@ -205,6 +225,9 @@ void IMED(int byte1) {
     break;
   case IMED_SUB:
     printf("sub ");
+    break;
+  case IMED_CMP:
+    printf("cmp ");
     break;
   default:
     fprintf(stderr, "unknown imed code %02X\n", code);
@@ -214,8 +237,6 @@ void IMED(int byte1) {
 
   int s = byte1 & IMED_SIGN_EXT_MASK;
   int w = byte1 & BIT_W_MASK;
-
-  fprintf(stderr, "IMED -> %02X %02X\n", byte1, byte2);
 
   decodeRM(byte1, byte2);
   printf(", ");
@@ -295,7 +316,7 @@ void (*opTable[16][16])(int byte0) = {
     {ADD_, ADD_, ADD_, ADD_, ADDA, ADDA, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, SUB_, SUB_, SUB_, SUB_, SUBA, SUBA, NOOP, NOOP},
-    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, CMP_, CMP_, CMP_, CMP_, CMPA, CMPA, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
