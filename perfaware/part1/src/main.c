@@ -1,4 +1,6 @@
 
+#include "decode.c"
+#include "decode.h"
 #include "disassemble.c"
 #include "disassemble.h"
 #include "global.c"

@@ -1,4 +1,5 @@
 #include "optable.h"
+#include "decode.h"
 #include "disassemble.h"
 #include "global.h"
 #include "hardware.h"
@@ -40,6 +41,8 @@ void CMP_(int byte1) {
 void MOV_(int byte1) {
   fprintf(verboseChannel, "MOVR -> %02X\n", byte1);
   printf("mov ");
+
+  Instruction inst = decodeMOV_(byte1);
 
   disassembleRegisterMemoryToFromRegister(byte1);
 }
