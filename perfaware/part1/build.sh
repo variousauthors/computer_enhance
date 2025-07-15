@@ -1,1 +1,1 @@
-zig cc src/*.c -o main
+zig cc src/main.c -o main

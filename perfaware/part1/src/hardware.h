@@ -1,0 +1,68 @@
+#ifndef HARDWARE_INC
+#define HARDWARE_INC
+
+#define BIT_D_MASK 0b00000010
+#define BIT_W_MASK 0b00000001
+#define REG_MASK 0b00111000
+
+#define IMED_SIGN_EXT_MASK BIT_D_MASK
+#define IMED_CODE_MASK REG_MASK
+
+#define MOV_W_MASK 0b00000001
+#define MOV_D_MASK 0b00000010
+#define MOV_REG_MASK 0b00111000
+#define MOV_RM_MASK 0b00000111
+#define MOV_MOD_MASK 0b11000000
+
+#define MOV_IMM_W_MASK 0b00001000
+#define MOV_IMM_REG_MASK 0b00000111
+
+enum MOD {
+  MEMORY_MODE_NO_DISP, // DISP when R/M is 110
+  MEMORY_MODE_8_BIT_DISP,
+  MEMORY_MODE_16_BIT_DISP,
+  REGISTER_MODE,
+};
+
+enum REG_ENCODING {
+  AL,
+  CL,
+  DL,
+  BL,
+  AH,
+  CH,
+  DH,
+  BH,
+  AX,
+  CX,
+  DX,
+  BX,
+  SP,
+  BP,
+  SI,
+  DI,
+};
+
+enum RM_ENCODING {
+  BX_SI,
+  BX_DI,
+  BP_SI,
+  BP_DI,
+  SI_,
+  DI_,
+  BP_, // DIRECT_ACCESS when mod 00
+  BX_,
+};
+
+enum IMED_CODE {
+  IMED_ADD,
+  IMED_OR,
+  IMED_ADC,
+  IMED_SBB,
+  IMED_AND,
+  IMED_SUB,
+  IMED_XOR,
+  IMED_CMP,
+};
+
+#endif
