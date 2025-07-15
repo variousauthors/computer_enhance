@@ -1,5 +1,8 @@
 #include <stdio.h>
 
+#define BIT_D_MASK 0b00000010
+#define BIT_W_MASK 0b00000001
+
 #define MOV_W_MASK 0b00000001
 #define MOV_D_MASK 0b00000010
 #define MOV_REG_MASK 0b00111000
@@ -9,19 +12,15 @@
 #define MOV_IMM_W_MASK 0b00001000
 #define MOV_IMM_REG_MASK 0b00000111
 
-#define OPCODE_MASK 0b11111100
-
 FILE *file;
 
 #define nextByte() (fgetc(file))
 
-enum OPCODE {
-  MEM_TO_ACC = 0b10100000,
-  IMM_TO_REGISTER = 0b10110000,
-  MOV0 = 0b10001000,
-  IMM_TO_REGISTER_MEMORY = 0b11000110,
-  ACC_TO_MEM = 0b10100010,
-};
+void decodeREG(int w, int reg);
+void decodeRM(int byte1, int byte2);
+void decodeMemoryModeNoDisp(int rm);
+void decodeByte(int byte);
+void decodeBytes(int byte1, int byte2);
 
 enum MOD {
   MEMORY_MODE_NO_DISP, // DISP when R/M is 110
@@ -59,6 +58,131 @@ enum RM_ENCODING {
   BP_, // DIRECT_ACCESS when mod 00
   BX_,
 };
+
+void NOOP(int byte0) {
+  printf("NO_OP %02X\n", byte0);
+  return;
+}
+
+// memory to accumulator / accumulator to memory
+void MOVA(int byte0) {
+  printf("mov ");
+
+  int d = byte0 & BIT_D_MASK;
+  int w = byte0 & BIT_W_MASK;
+
+  fprintf(stderr, "MOVA d: %02X w: %02X\n", d, w);
+
+  // logic for the d bit is inverted for
+  // immediate to acc / acc to immediate
+  // 1010000w - AX is dest
+  // 1010001w - AX is source
+  if (!d) {
+    // always accumulator reg = 0
+    decodeREG(w, 0);
+    printf(", ");
+    // kind of hacky, but we know we want [16-bit immediate]
+    // and we know this does it
+    decodeMemoryModeNoDisp(BP_);
+  } else {
+    // kind of hacky, but we know we want [16-bit immediate]
+    // and we know this does it
+    decodeMemoryModeNoDisp(BP_);
+    printf(", ");
+    // always accumulator reg = 0
+    decodeREG(w, 0);
+  }
+
+  printf("\n");
+
+  return;
+}
+
+// register/memory to/from register
+void MOVR(int byte1) {
+  int byte2 = nextByte();
+  fprintf(stderr, "MOVR -> %02X %02X\n", byte1, byte2);
+  printf("mov ");
+
+  int w = byte1 & MOV_W_MASK;
+  int reg = (byte2 & MOV_REG_MASK) >> 3;
+
+  if (byte1 & MOV_D_MASK) {
+    // reg is dest
+    decodeREG(w, reg);
+    printf(", ");
+    decodeRM(byte1, byte2);
+    printf("\n");
+  } else {
+    // reg is source
+    decodeRM(byte1, byte2);
+    printf(", ");
+    decodeREG(w, reg);
+    printf("\n");
+  }
+}
+
+// immediate to register
+void MOVI(int byte) {
+  fprintf(stderr, "MOVI\n");
+  printf("mov ");
+
+  int w = (byte & MOV_IMM_W_MASK) >> 3;
+  int reg = (byte & MOV_IMM_REG_MASK);
+
+  decodeREG(w, reg);
+  printf(", ");
+
+  if (byte & MOV_IMM_W_MASK) {
+    decodeBytes(nextByte(), nextByte());
+  } else {
+    decodeByte(nextByte());
+  }
+
+  printf("\n");
+}
+
+// immediate to register/memory
+void MOVK(int byte1) {
+  int byte2 = nextByte();
+  // byte1 byte2 (DISP_LO) (DISP_HI) data (data if w = 1)
+  fprintf(stderr, "MOVK -> %02X %02X\n", byte1, byte2);
+  printf("mov ");
+
+  decodeRM(byte1, byte2);
+  printf(", ");
+
+  if (byte1 & MOV_W_MASK) {
+    printf("word ");
+    decodeBytes(nextByte(), nextByte());
+  } else {
+    printf("byte ");
+    decodeByte(nextByte());
+  }
+
+  printf("\n");
+}
+
+// clang-format off
+void (*opTable[16][16])(int byte0) = {
+    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, MOVR, MOVR, MOVR, MOVR, NOOP, NOOP, NOOP, NOOP},
+    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+    {MOVA, MOVA, MOVA, MOVA, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+    {MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI},
+    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, MOVK, MOVK, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+};
+// clang-format on
 
 // @param w - 1 bit
 // @param reg - 3 bits
@@ -257,97 +381,10 @@ void decodeByte(int byte) { printf("%d", byte); }
 
 void decodeBytes(int byte1, int byte2) { printf("%d", (byte2 << 8) | byte1); }
 
-void decodeOpImmediateToRegisterMemory(int byte1, int byte2) {
-  // byte1 byte2 (DISP_LO) (DISP_HI) data (data if w = 1)
-  fprintf(stderr, "decode imm to mem -> %02X %02X\n", byte1, byte2);
-  printf("mov ");
-
-  decodeRM(byte1, byte2);
-  printf(", ");
-
-  if (byte1 & MOV_W_MASK) {
-    printf("word ");
-    decodeBytes(nextByte(), nextByte());
-  } else {
-    printf("byte ");
-    decodeByte(nextByte());
-  }
-
-  printf("\n");
-}
-
-void decodeOpMemoryToAccumulator(int byte1) {
-  printf("mov ");
-
-  int w = byte1 & MOV_W_MASK;
-
-  // always accumulator reg = 0
-  decodeREG(w, 0);
-  printf(", ");
-  // kind of hacky, but we know we want [16-bit immediate]
-  // and we know this does it
-  decodeMemoryModeNoDisp(BP_);
-  printf("\n");
-}
-
-void decodeOpAccumulatorToMemory(int byte1) {
-  printf("mov ");
-
-  int w = byte1 & MOV_W_MASK;
-
-  // kind of hacky, but we know we want [16-bit immediate]
-  // and we know this does it
-  decodeMemoryModeNoDisp(BP_);
-  printf(", ");
-  // always accumulator reg = 0
-  decodeREG(w, 0);
-  printf("\n");
-}
-
-void decodeOpImmediateToRegister(int byte1, int byte2) {
-  fprintf(stderr, "decode imm -> %02X %02X\n", byte1, byte2);
-  printf("mov ");
-
-  int w = (byte1 & MOV_IMM_W_MASK) >> 3;
-  int reg = (byte1 & MOV_IMM_REG_MASK);
-
-  decodeREG(w, reg);
-  printf(", ");
-
-  if (byte1 & MOV_IMM_W_MASK) {
-    decodeBytes(byte2, nextByte());
-  } else {
-    decodeByte(byte2);
-  }
-
-  printf("\n");
-}
-
-void decodeOpRegisterMemoryToFromRegister(int byte1, int byte2) {
-  fprintf(stderr, "decode reg/mem to reg -> %02X %02X\n", byte1, byte2);
-  printf("mov ");
-
-  int w = byte1 & MOV_W_MASK;
-  int reg = (byte2 & MOV_REG_MASK) >> 3;
-
-  if (byte1 & MOV_D_MASK) {
-    // reg is dest
-    decodeREG(w, reg);
-    printf(", ");
-    decodeRM(byte1, byte2);
-    printf("\n");
-  } else {
-    // reg is source
-    decodeRM(byte1, byte2);
-    printf(", ");
-    decodeREG(w, reg);
-    printf("\n");
-  }
-}
-
 int main() {
   // read the file
   file = fopen("listing_0040_challenge_movs", "rb");
+  // file = fopen("listing_0039_more_movs", "rb");
 
   if (file == NULL) {
     perror("Error opening file");
@@ -359,20 +396,12 @@ int main() {
 
   int byte;
   while ((byte = nextByte()) != EOF) {
-    fprintf(stderr, "considering -> %02X\n", byte);
-    if ((byte & ACC_TO_MEM) == ACC_TO_MEM) {
-      decodeOpAccumulatorToMemory(byte);
-    } else if ((byte & MEM_TO_ACC) == MEM_TO_ACC) {
-      decodeOpMemoryToAccumulator(byte);
-    } else if ((byte & IMM_TO_REGISTER) == IMM_TO_REGISTER) {
-      decodeOpImmediateToRegister(byte, nextByte());
-    } else if ((byte & MOV0) == MOV0) {
-      decodeOpRegisterMemoryToFromRegister(byte, nextByte());
-    } else if ((byte & IMM_TO_REGISTER_MEMORY) == IMM_TO_REGISTER_MEMORY) {
-      decodeOpImmediateToRegisterMemory(byte, nextByte());
-    } else {
-      fprintf(stderr, "unknown opcode 0x%02X\n", byte);
-    }
+    int lo = (byte & 0b00001111);
+    int hi = (byte & 0b11110000) >> 4;
+
+    fprintf(stderr, "considering -> %1X, %1X\n", hi, lo);
+
+    opTable[hi][lo](byte);
   }
 
   fclose(file);
