@@ -75,7 +75,25 @@ enum IMED_CODE {
   IMED_CMP,
 };
 
-void decodeRegisterMemoryToFromRegister(int byte1, int byte2) {
+void decodeImmediateToAccumulator(int byte1) {
+  int w = byte1 & BIT_W_MASK;
+
+  // always accumulator reg = 0
+  decodeREG(w, 0);
+  printf(", ");
+
+  if (w) {
+    decodeBytes(nextByte(), nextByte());
+  } else {
+    decodeByte(nextByte());
+  }
+
+  printf("\n");
+}
+
+void decodeRegisterMemoryToFromRegister(int byte1) {
+  int byte2 = nextByte();
+
   int w = byte1 & BIT_W_MASK;
   int d = byte1 & BIT_D_MASK;
   int reg = (byte2 & REG_MASK) >> 3;
@@ -102,93 +120,44 @@ void NOOP(int byte0) {
 
 // add register/memory to/from register
 void ADD_(int byte1) {
-  int byte2 = nextByte();
-  fprintf(stderr, "ADD -> %02X %02X\n", byte1, byte2);
+  fprintf(stderr, "ADD -> %02X\n", byte1);
   printf("add ");
 
-  decodeRegisterMemoryToFromRegister(byte1, byte2);
+  decodeRegisterMemoryToFromRegister(byte1);
+}
+
+// add register/memory to/from register
+void SUB_(int byte1) {
+  fprintf(stderr, "SUB -> %02X\n", byte1);
+  printf("sub ");
+
+  decodeRegisterMemoryToFromRegister(byte1);
+}
+
+// register/memory to/from register
+void MOV_(int byte1) {
+  fprintf(stderr, "MOVR -> %02X\n", byte1);
+  printf("mov ");
+
+  decodeRegisterMemoryToFromRegister(byte1);
 }
 
 // add immediate to accumulator
 void ADDA(int byte1) {
   printf("add ");
+  fprintf(stderr, "ADDA -> %02X\n", byte1);
 
-  int w = byte1 & BIT_W_MASK;
-
-  fprintf(stderr, "ADDA w: %02X\n", w);
-
-  // always accumulator reg = 0
-  decodeREG(w, 0);
-  printf(", ");
-
-  if (w) {
-    decodeBytes(nextByte(), nextByte());
-  } else {
-    decodeByte(nextByte());
-  }
-
-  printf("\n");
+  decodeImmediateToAccumulator(byte1);
 }
 
-// immediate mode add, sub, cmp
-void IMED(int byte1) {
-  int byte2 = nextByte();
-  int code = byte1 & IMED_CODE_MASK;
+// add immediate to register/memory
+// confusing: (from) immediate value subtracted _from_ (ie store to)
+// register/memory
+void SUBA(int byte1) {
+  printf("sub ");
+  fprintf(stderr, "SUBA -> %02X\n", byte1);
 
-  switch (code) {
-  case IMED_ADD:
-    printf("add ");
-    break;
-  default:
-    fprintf(stderr, "unknown imed code %02X\n", code);
-    exit(1);
-    break;
-  }
-
-  int s = byte1 & IMED_SIGN_EXT_MASK;
-  int w = byte1 & BIT_W_MASK;
-
-  fprintf(stderr, "IMED -> %02X %02X\n", byte1, byte2);
-
-  // when we write to [bx] some address
-  // some data like 44 we need to specify whether
-  // we want to write 1 byte or 2
-  if (w) {
-    printf("word ");
-  } else {
-    printf("byte ");
-  }
-
-  decodeRM(byte1, byte2);
-  printf(", ");
-
-  switch (s | w) {
-  case 0b00: {
-    decodeByte(nextByte());
-    break;
-  }
-  case 0b01: {
-    decodeBytes(nextByte(), nextByte());
-    break;
-  }
-  case 0b10: {
-    // redundant? but it's in the table
-    decodeByte(nextByte());
-    break;
-  }
-  case 0b11: {
-    // sign extended 8-bit data to 16-bits
-    int byte3 = nextByte();
-    decodeBytes(byte3 & 0x00FF, (byte3 & 0xFF00) >> 8);
-    break;
-  }
-  default:
-    fprintf(stderr, "unknown values for s|w %02X\n", code);
-    exit(1);
-    break;
-  }
-
-  printf("\n");
+  decodeImmediateToAccumulator(byte1);
 }
 
 // memory to accumulator / accumulator to memory
@@ -225,13 +194,59 @@ void MOVA(int byte0) {
   return;
 }
 
-// register/memory to/from register
-void MOVR(int byte1) {
+// immediate mode add, sub, cmp
+void IMED(int byte1) {
   int byte2 = nextByte();
-  fprintf(stderr, "MOVR -> %02X %02X\n", byte1, byte2);
-  printf("mov ");
+  int code = byte1 & IMED_CODE_MASK;
 
-  decodeRegisterMemoryToFromRegister(byte1, byte2);
+  switch (code) {
+  case IMED_ADD:
+    printf("add ");
+    break;
+  case IMED_SUB:
+    printf("sub ");
+    break;
+  default:
+    fprintf(stderr, "unknown imed code %02X\n", code);
+    exit(1);
+    break;
+  }
+
+  int s = byte1 & IMED_SIGN_EXT_MASK;
+  int w = byte1 & BIT_W_MASK;
+
+  fprintf(stderr, "IMED -> %02X %02X\n", byte1, byte2);
+
+  decodeRM(byte1, byte2);
+  printf(", ");
+
+  switch (s | w) {
+  case 0b00: {
+    decodeByte(nextByte());
+    break;
+  }
+  case 0b01: {
+    decodeBytes(nextByte(), nextByte());
+    break;
+  }
+  case 0b10: {
+    // redundant? but it's in the table
+    decodeByte(nextByte());
+    break;
+  }
+  case 0b11: {
+    // sign extended 8-bit data to 16-bits
+    int byte3 = nextByte();
+    decodeBytes(byte3 & 0x00FF, (byte3 & 0xFF00) >> 8);
+    break;
+  }
+  default:
+    fprintf(stderr, "unknown values for s|w %02X\n", code);
+    exit(1);
+    break;
+  }
+
+  printf("\n");
 }
 
 // immediate to register
@@ -255,7 +270,7 @@ void MOVI(int byte) {
 }
 
 // immediate to register/memory
-void MOVK(int byte1) {
+void MOVR(int byte1) {
   int byte2 = nextByte();
   // byte1 byte2 (DISP_LO) (DISP_HI) data (data if w = 1)
   fprintf(stderr, "MOVK -> %02X %02X\n", byte1, byte2);
@@ -279,17 +294,17 @@ void MOVK(int byte1) {
 void (*opTable[16][16])(int byte0) = {
     {ADD_, ADD_, ADD_, ADD_, ADDA, ADDA, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, SUB_, SUB_, SUB_, SUB_, SUBA, SUBA, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
-    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
-    {IMED, IMED, IMED, IMED, NOOP, NOOP, NOOP, NOOP, MOVR, MOVR, MOVR, MOVR, NOOP, NOOP, NOOP, NOOP},
+    {IMED, IMED, IMED, IMED, NOOP, NOOP, NOOP, NOOP, MOV_, MOV_, MOV_, MOV_, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {MOVA, MOVA, MOVA, MOVA, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI, MOVI},
-    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, MOVK, MOVK, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
+    {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, MOVR, MOVR, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
     {NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP, NOOP},
