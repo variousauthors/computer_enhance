@@ -10,6 +10,41 @@ void debugInstruction(Instruction inst) {
           inst.dispHi, inst.data1, inst.data2);
 }
 
+void decodeData(Instruction *inst) {
+  inst->data1 = nextByte();
+
+  if (inst->w) {
+    inst->data2 = nextByte();
+  }
+}
+
+void decodeDisplacement(Instruction *inst) {
+  switch (inst->mod) {
+  case MEMORY_MODE_NO_DISP: {
+    if (inst->rm == 0b110) {
+      fprintf(verboseChannel, "yes\n");
+      inst->dispLo = nextByte();
+      inst->dispHi = nextByte();
+    }
+    break;
+  }
+  case MEMORY_MODE_8_BIT_DISP: {
+    inst->dispLo = nextByte();
+    break;
+  }
+  case MEMORY_MODE_16_BIT_DISP: {
+    inst->dispLo = nextByte();
+    inst->dispHi = nextByte();
+    break;
+  }
+  case REGISTER_MODE: {
+    break;
+  }
+  default:
+    break;
+  }
+}
+
 // register/memory to/from register
 Instruction decodeMOV_(int byte1) {
   Instruction inst = {0};
@@ -23,31 +58,7 @@ Instruction decodeMOV_(int byte1) {
   inst.mod = (byte2 & 0b11000000) >> 6;
   inst.rm = (byte2 & RM_MASK);
 
-  switch (inst.mod) {
-  case MEMORY_MODE_NO_DISP: {
-    if (inst.rm == 0b110) {
-      fprintf(verboseChannel, "yes\n");
-      inst.dispLo = nextByte();
-      inst.dispHi = nextByte();
-    }
-    break;
-  }
-  case MEMORY_MODE_8_BIT_DISP: {
-    inst.dispLo = nextByte();
-    break;
-  }
-  case MEMORY_MODE_16_BIT_DISP: {
-    inst.dispLo = nextByte();
-    inst.dispHi = nextByte();
-    break;
-  }
-  case REGISTER_MODE: {
-    break;
-  }
-  default:
-    break;
-  }
-
+  decodeDisplacement(&inst);
   debugInstruction(inst);
 
   return inst;
@@ -90,11 +101,7 @@ Instruction decodeMOVI(int byte1) {
   inst.mod = 0;
   inst.rm = 0;
 
-  inst.data1 = nextByte();
-
-  if (inst.w) {
-    inst.data2 = nextByte();
-  }
+  decodeData(&inst);
 
   debugInstruction(inst);
 
@@ -115,36 +122,9 @@ Instruction decodeMOVR(int byte1) {
   inst.mod = (byte2 & 0b11000000) >> 6;
   inst.rm = (byte2 & RM_MASK);
 
-  switch (inst.mod) {
-  case MEMORY_MODE_NO_DISP: {
-    if (inst.rm == 0b110) {
-      fprintf(verboseChannel, "yes\n");
-      inst.dispLo = nextByte();
-      inst.dispHi = nextByte();
-    }
-    break;
-  }
-  case MEMORY_MODE_8_BIT_DISP: {
-    inst.dispLo = nextByte();
-    break;
-  }
-  case MEMORY_MODE_16_BIT_DISP: {
-    inst.dispLo = nextByte();
-    inst.dispHi = nextByte();
-    break;
-  }
-  case REGISTER_MODE: {
-    break;
-  }
-  default:
-    break;
-  }
+  decodeDisplacement(&inst);
 
-  inst.data1 = nextByte();
-
-  if (inst.w) {
-    inst.data2 = nextByte();
-  }
+  decodeData(&inst);
 
   debugInstruction(inst);
 

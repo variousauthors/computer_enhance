@@ -22,6 +22,23 @@ typedef struct Instruction {
   uint8_t data2;
 } Instruction;
 
+typedef struct InstructionFormat {
+  uint8_t D_FIELD_MASK;
+  uint8_t D_FIELD_SHIFT;
+
+  uint8_t W_FIELD_MASK;
+  uint8_t W_FIELD_SHIFT;
+
+  uint8_t MOD_FIELD_MASK;
+  uint8_t MOD_FIELD_SHIFT;
+
+  uint8_t REG_FIELD_MASK;
+  uint8_t REG_FIELD_SHIFT;
+
+  uint8_t RM_FIELD_MASK;
+  uint8_t RM_FIELD_SHIFT;
+} InstructionFormat;
+
 // memory to accumulator / accumulator to memory
 Instruction decodeMOVA(int byte0);
 
