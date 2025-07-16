@@ -76,6 +76,10 @@ void ADDA(int byte1) {
 
   Instruction inst = decodeImmediateToAccumulatore(byte1);
   disassembleImmediateToAccumulator(inst);
+
+  if (exec) {
+    mathImmediateToAccumulator(inst);
+  }
 }
 
 // immediate with accumulator
@@ -85,6 +89,10 @@ void CMPA(int byte1) {
 
   Instruction inst = decodeImmediateToAccumulatore(byte1);
   disassembleImmediateToAccumulator(inst);
+
+  if (exec) {
+    mathImmediateToAccumulator(inst);
+  }
 }
 
 // add immediate to register/memory
@@ -96,6 +104,10 @@ void SUBA(int byte1) {
 
   Instruction inst = decodeImmediateToAccumulatore(byte1);
   disassembleImmediateToAccumulator(inst);
+
+  if (exec) {
+    mathImmediateToAccumulator(inst);
+  }
 }
 
 // memory to accumulator / accumulator to memory
