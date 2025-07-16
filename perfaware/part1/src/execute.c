@@ -21,18 +21,23 @@
 
 int getRegisterIndex(int w, int reg) { return w ? reg : (reg & 0b011); }
 
-void storeImmediateToRegister(Instruction inst) {
-  int index = getRegisterIndex(inst.w, inst.reg);
-
-  if (inst.w) {
-    STORE_WIDE(index, inst.data1, inst.data2);
+void updateRegister(int index, int value, int w, int high) {
+  if (w) {
+    REGISTERS[index] = value;
   } else {
-    if (inst.reg & 0b100) {
-      STORE_HIGH(index, inst.data1);
+    if (high) {
+      STORE_HIGH(index, value);
     } else {
-      STORE_LOW(index, inst.data1);
+      STORE_LOW(index, value);
     }
   }
+}
+
+void storeImmediateToRegister(Instruction inst) {
+  int index = getRegisterIndex(inst.w, inst.reg);
+  int value = inst.w ? ((inst.data2) << 8 | inst.data1) : inst.data1;
+
+  updateRegister(index, value, inst.w, inst.reg & 0b100);
 }
 
 void storeRegisterToRegister(Instruction inst) {
@@ -50,13 +55,99 @@ void storeRegisterToRegister(Instruction inst) {
           "storeRegisterToResgiter -> dest: %02X, source: %02X, value: %02X\n",
           dest, source, value);
 
-  if (inst.w) {
-    REGISTERS[destIndex] = value;
-  } else {
-    if (dest & 0b100) {
-      STORE_HIGH(destIndex, value);
-    } else {
-      STORE_LOW(destIndex, value);
-    }
-  }
+  updateRegister(destIndex, value, inst.w, dest & 0b100);
 }
+
+void mathRegisterMemoryAndRegisterToEither(Instruction inst) {
+  int dest = inst.d ? inst.reg : inst.rm;
+  int destIndex = getRegisterIndex(inst.w, dest);
+  int source = inst.d ? inst.rm : inst.reg;
+  int sourceIndex = getRegisterIndex(inst.w, source);
+
+  int sourceValue = inst.w           ? REGISTERS[sourceIndex]
+                    : source & 0b100 ? LOAD_HIGH(sourceIndex)
+                                     : LOAD_LOW(sourceIndex);
+
+  int destValue = inst.w         ? REGISTERS[destIndex]
+                  : dest & 0b100 ? LOAD_HIGH(destIndex)
+                                 : LOAD_LOW(destIndex);
+
+  switch (inst.code) {
+  case ALU_ADD: {
+    destValue += sourceValue;
+    break;
+  }
+  case ALU_SUB: {
+    destValue -= sourceValue;
+    break;
+  }
+  case ALU_CMP: {
+    int tmp = destValue - sourceValue;
+    break;
+  }
+  default:
+    fprintf(stderr, "unknown alu code %02X\n", inst.code);
+    exit(1);
+    break;
+  }
+
+  updateRegister(destIndex, destValue, inst.w, dest & 0b100);
+}
+
+void mathImmediateToRegister(Instruction inst) {
+  int dest = inst.rm;
+  int destIndex = getRegisterIndex(inst.w, dest);
+
+  int destValue = inst.w         ? REGISTERS[destIndex]
+                  : dest & 0b100 ? LOAD_HIGH(destIndex)
+                                 : LOAD_LOW(destIndex);
+  int sourceValue = 0;
+
+  switch (inst.s | inst.w) {
+  case 0b00: {
+    sourceValue = inst.data1;
+    break;
+  }
+  case 0b01: {
+    sourceValue = (inst.data2 << 8) | inst.data1;
+    break;
+  }
+  case 0b10: {
+    // redundant? but it's in the table
+    sourceValue = inst.data1;
+    break;
+  }
+  case 0b11: {
+    // sign extended 8-bit data to 16-bits
+    sourceValue = (inst.data1 & 0x80) ? (0xFF00 | inst.data1) : inst.data1;
+    break;
+  }
+  default:
+    fprintf(stderr, "unknown values for s|w %02X\n", inst.code);
+    exit(1);
+    break;
+  }
+
+  switch (inst.code) {
+  case ALU_ADD: {
+    destValue += sourceValue;
+    break;
+  }
+  case ALU_SUB: {
+    destValue -= sourceValue;
+    break;
+  }
+  case ALU_CMP: {
+    int tmp = destValue - sourceValue;
+    break;
+  }
+  default:
+    fprintf(stderr, "unknown alu code %02X\n", inst.code);
+    exit(1);
+    break;
+  }
+
+  updateRegister(destIndex, destValue, inst.w, dest & 0b100);
+}
+
+void mathImmediateToAccumulator(Instruction inst) {}

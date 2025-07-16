@@ -60,6 +60,8 @@ Instruction decodeRegisterMemoryToFromRegister(int byte1) {
   inst.reg = (byte2 & REG_MASK) >> 3;
   inst.rm = (byte2 & RM_MASK);
 
+  inst.code = (byte1 & 0b00111000) >> 3;
+
   decodeDisplacement(&inst);
   debugInstruction(inst);
 
@@ -144,6 +146,8 @@ Instruction decodeImmediateToRegisterMemory(int byte1) {
   inst.reg = (byte2 & REG_MASK) >> 3;
   inst.rm = byte2 & RM_MASK;
 
+  inst.code = inst.reg;
+
   decodeDisplacement(&inst);
   decodeData(&inst);
 
@@ -156,6 +160,7 @@ Instruction decodeImmediateToAccumulatore(int byte1) {
   Instruction inst = {0};
 
   inst.w = byte1 & BIT_W_MASK;
+  inst.code = (byte1 & 0b00111000) >> 3;
 
   decodeData(&inst);
   debugInstruction(inst);

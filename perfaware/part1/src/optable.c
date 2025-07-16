@@ -22,6 +22,10 @@ void ADD_(int byte1) {
 
   Instruction inst = decodeRegisterMemoryToFromRegister(byte1);
   disassembleRegisterMemoryToFromRegister(inst);
+
+  if (exec) {
+    mathRegisterMemoryAndRegisterToEither(inst);
+  }
 }
 
 // add register/memory to/from register
@@ -31,6 +35,10 @@ void SUB_(int byte1) {
 
   Instruction inst = decodeRegisterMemoryToFromRegister(byte1);
   disassembleRegisterMemoryToFromRegister(inst);
+
+  if (exec) {
+    mathRegisterMemoryAndRegisterToEither(inst);
+  }
 }
 
 // compare register/memory with register
@@ -40,6 +48,10 @@ void CMP_(int byte1) {
 
   Instruction inst = decodeRegisterMemoryToFromRegister(byte1);
   disassembleRegisterMemoryToFromRegister(inst);
+
+  if (exec) {
+    mathRegisterMemoryAndRegisterToEither(inst);
+  }
 }
 
 // register/memory to/from register
@@ -120,23 +132,20 @@ void IMED(int byte1) {
   Instruction inst = decodeImmediateToRegisterMemory(byte1);
 
   fprintf(verboseChannel, "IMED -> %02X %02X\n", inst.dispLo, inst.dispHi);
+  fprintf(verboseChannel, "IMED -> code: %02X\n", inst.code);
 
-  int code = inst.reg;
-
-  fprintf(verboseChannel, "IMED -> code: %02X\n", code);
-
-  switch (code) {
-  case IMED_ADD:
+  switch (inst.code) {
+  case ALU_ADD:
     printf("add ");
     break;
-  case IMED_SUB:
+  case ALU_SUB:
     printf("sub ");
     break;
-  case IMED_CMP:
+  case ALU_CMP:
     printf("cmp ");
     break;
   default:
-    fprintf(stderr, "unknown imed code %02X\n", code);
+    fprintf(stderr, "unknown imed code %02X\n", inst.code);
     exit(1);
     break;
   }
@@ -166,13 +175,17 @@ void IMED(int byte1) {
   }
   case 0b11: {
     // sign extended 8-bit data to 16-bits
-    disassembleBytes(inst.data1 & 0x00FF, (inst.data1 & 0xFF00) >> 8);
+    disassembleBytes(inst.data1, inst.data1 & 0x80 ? 0xFF : 0x00);
     break;
   }
   default:
-    fprintf(stderr, "unknown values for s|w %02X\n", code);
+    fprintf(stderr, "unknown values for s|w %02X\n", inst.code);
     exit(1);
     break;
+  }
+
+  if (exec) {
+    mathImmediateToRegister(inst);
   }
 
   printf("\n");

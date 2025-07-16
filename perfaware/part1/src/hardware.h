@@ -62,15 +62,15 @@ enum RM_ENCODING {
   BX_,
 };
 
-enum IMED_CODE {
-  IMED_ADD,
-  IMED_OR,
-  IMED_ADC,
-  IMED_SBB,
-  IMED_AND,
-  IMED_SUB,
-  IMED_XOR,
-  IMED_CMP,
+enum ALU_CODE {
+  ALU_ADD,
+  ALU_OR,
+  ALU_ADC,
+  ALU_SBB,
+  ALU_AND,
+  ALU_SUB,
+  ALU_XOR,
+  ALU_CMP,
 };
 
 #endif

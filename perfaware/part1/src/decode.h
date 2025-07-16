@@ -16,6 +16,8 @@ typedef struct Instruction {
   unsigned reg : 3;
   unsigned rm : 3;
 
+  unsigned code : 3; // arithmetic code, ie 101 for sub, 000 for add
+
   // wasteful, but we can figure this out later
   uint8_t dispLo;
   uint8_t dispHi;

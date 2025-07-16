@@ -16,3 +16,6 @@
 
 void storeImmediateToRegister(Instruction inst);
 void storeRegisterToRegister(Instruction inst);
+void mathRegisterMemoryAndRegisterToEither(Instruction inst);
+void mathImmediateToRegister(Instruction inst);
+void mathImmediateToAccumulator(Instruction inst);
