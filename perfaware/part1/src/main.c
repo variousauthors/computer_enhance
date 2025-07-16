@@ -63,6 +63,8 @@ int main(int argc, char *argv[]) {
     printf("%s: 0x%04X\n", REGISTER_NAMES[5], REGISTERS[5]);
     printf("%s: 0x%04X\n", REGISTER_NAMES[6], REGISTERS[6]);
     printf("%s: 0x%04X\n", REGISTER_NAMES[7], REGISTERS[7]);
+
+    printf("flags: %c%c\n", FLAGS.SF ? 'S' : ' ', FLAGS.ZF ? 'Z' : ' ');
   }
 
   fclose(source);

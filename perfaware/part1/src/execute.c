@@ -118,23 +118,32 @@ int getImmediateValue(Instruction inst) {
   }
 }
 
-int performMath(Instruction inst, int destValue, int sourceValue) {
+int performMath(Instruction inst, uint16_t destValue, uint16_t sourceValue) {
+  uint16_t tmp;
   switch (inst.code) {
   case ALU_ADD: {
-    return destValue += sourceValue;
+    tmp = destValue + sourceValue;
+    break;
   }
   case ALU_SUB: {
-    return destValue -= sourceValue;
+    tmp = destValue - sourceValue;
+    break;
   }
   case ALU_CMP: {
-    int tmp = destValue - sourceValue;
-    return tmp;
+    tmp = destValue - sourceValue;
+    break;
   }
   default:
     fprintf(stderr, "unknown alu code %02X\n", inst.code);
     exit(1);
     break;
   }
+
+  FLAGS.ZF = tmp == 0;
+  FLAGS.SF = (tmp & 0x8000) != 0;
+  printf("wat %04X\n", tmp);
+
+  return tmp;
 }
 
 void mathImmediateToRegister(Instruction inst) {

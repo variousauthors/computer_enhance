@@ -28,5 +28,5 @@ add bp, 1027
 sub bp, 2026
 
 mov ax, 200
-sub ax, 40
+sub ax, 201
 

@@ -25,6 +25,25 @@
 uint16_t REGISTERS[8];
 char *REGISTER_NAMES[8];
 
+typedef struct Flags {
+  unsigned CF : 1;
+  unsigned : 1;
+  unsigned PF : 1;
+  unsigned : 1;
+  unsigned AF : 1;
+  unsigned : 1;
+  unsigned ZF : 1;
+  unsigned SF : 1;
+
+  unsigned TF : 1;
+  unsigned IF : 1;
+  unsigned DF : 1;
+  unsigned OF : 1;
+  unsigned : 4;
+} Flags;
+
+Flags FLAGS;
+
 enum MOD {
   MEMORY_MODE_NO_DISP, // DISP when R/M is 110
   MEMORY_MODE_8_BIT_DISP,
