@@ -9,7 +9,8 @@
 #define nextByte() (fgetc(source))
 
 void NOOP(int byte0) {
-  printf("NO_OP %02X\n", byte0);
+  fprintf(verboseChannel, "hit NOOP while parsing %02X\n", byte0);
+  exit(1);
   return;
 }
 
@@ -39,12 +40,12 @@ void CMP_(int byte1) {
 
 // register/memory to/from register
 void MOV_(int byte1) {
-  fprintf(verboseChannel, "MOVR -> %02X\n", byte1);
+  fprintf(verboseChannel, "MOV_ -> %02X\n", byte1);
   printf("mov ");
 
   Instruction inst = decodeMOV_(byte1);
 
-  disassembleRegisterMemoryToFromRegister(byte1);
+  disassembleRegisterMemoryToFromRegisterFromInstruction(inst);
 }
 
 // add immediate to accumulator
@@ -77,29 +78,24 @@ void SUBA(int byte1) {
 void MOVA(int byte0) {
   printf("mov ");
 
-  int d = byte0 & BIT_D_MASK;
-  int w = byte0 & BIT_W_MASK;
+  Instruction inst = decodeMOVA(byte0);
 
-  fprintf(verboseChannel, "MOVA d: %02X w: %02X\n", d, w);
+  fprintf(verboseChannel, "MOVA d: %02X w: %02X\n", inst.d, inst.w);
 
   // logic for the d bit is inverted for
   // immediate to acc / acc to immediate
   // 1010000w - AX is dest
   // 1010001w - AX is source
-  if (!d) {
+  if (!inst.d) {
     // always accumulator reg = 0
-    disassembleREG(w, 0);
+    disassembleREG(inst.w, inst.reg);
     printf(", ");
-    // kind of hacky, but we know we want [16-bit immediate]
-    // and we know this does it
-    disassembleMemoryModeNoDisp(BP_);
+    disassembleRMFromInstruction(inst);
   } else {
-    // kind of hacky, but we know we want [16-bit immediate]
-    // and we know this does it
-    disassembleMemoryModeNoDisp(BP_);
+    disassembleRMFromInstruction(inst);
     printf(", ");
     // always accumulator reg = 0
-    disassembleREG(w, 0);
+    disassembleREG(inst.w, inst.reg);
   }
 
   printf("\n");
@@ -175,29 +171,24 @@ void IMED(int byte1) {
 
 // immediate to register
 void MOVI(int byte) {
+  Instruction inst = decodeMOVI(byte);
   fprintf(verboseChannel, "MOVI\n");
   printf("mov ");
 
-  int w = (byte & MOV_IMM_W_MASK) >> 3;
-  int reg = (byte & MOV_IMM_REG_MASK);
-
-  disassembleREG(w, reg);
+  disassembleREG(inst.w, inst.reg);
   printf(", ");
 
   if (byte & MOV_IMM_W_MASK) {
-    int byte1 = nextByte();
-    int byte2 = nextByte();
-    disassembleBytes(byte1, byte2);
+    disassembleBytes(inst.data1, inst.data2);
 
     if (exec) {
-      registerStore16(w, reg, byte1, byte2);
+      registerStore16(inst.w, inst.reg, inst.data1, inst.data2);
     }
   } else {
-    int byte1 = nextByte();
-    disassembleByte(byte1);
+    disassembleByte(inst.data1);
 
     if (exec) {
-      registerStore8(w, reg, byte1);
+      registerStore8(inst.w, inst.reg, inst.data1);
     }
   }
 
@@ -206,20 +197,18 @@ void MOVI(int byte) {
 
 // immediate to register/memory
 void MOVR(int byte1) {
-  int byte2 = nextByte();
-  // byte1 byte2 (DISP_LO) (DISP_HI) data (data if w = 1)
-  fprintf(verboseChannel, "MOVK -> %02X %02X\n", byte1, byte2);
+  Instruction inst = decodeMOVR(byte1);
   printf("mov ");
 
-  disassembleRM(byte1, byte2);
+  disassembleRMFromInstruction(inst);
   printf(", ");
 
-  if (byte1 & MOV_W_MASK) {
+  if (inst.w) {
     printf("word ");
-    disassembleBytes(nextByte(), nextByte());
+    disassembleBytes(inst.data1, inst.data2);
   } else {
     printf("byte ");
-    disassembleByte(nextByte());
+    disassembleByte(inst.data1);
   }
 
   printf("\n");

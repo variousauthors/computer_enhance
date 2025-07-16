@@ -22,6 +22,15 @@ typedef struct Instruction {
   uint8_t data2;
 } Instruction;
 
+// memory to accumulator / accumulator to memory
+Instruction decodeMOVA(int byte0);
+
+// immediate to register
+Instruction decodeMOVI(int byte1);
+
+// immediate to register/memory
+Instruction decodeMOVR(int byte1);
+
 // register/memory to/from register
 Instruction decodeMOV_(int byte1);
 

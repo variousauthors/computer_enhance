@@ -19,6 +19,26 @@ void disassembleImmediateToAccumulator(int byte1) {
   printf("\n");
 }
 
+void disassembleRegisterMemoryToFromRegisterFromInstruction(Instruction inst) {
+  int w = inst.w;
+  int d = inst.d;
+  int reg = inst.reg;
+
+  if (d) {
+    // reg is dest
+    disassembleREG(w, reg);
+    printf(", ");
+    disassembleRMFromInstruction(inst);
+    printf("\n");
+  } else {
+    // reg is source
+    disassembleRMFromInstruction(inst);
+    printf(", ");
+    disassembleREG(w, reg);
+    printf("\n");
+  }
+}
+
 void disassembleRegisterMemoryToFromRegister(int byte1) {
   int byte2 = nextByte();
 
@@ -94,6 +114,47 @@ void disassembleREG(int w, int reg) {
     break;
   case DI:
     printf("di");
+    break;
+  default:
+    break;
+  }
+}
+
+void disassembleMemoryModeNoDispFromInstruction(Instruction inst) {
+  fprintf(verboseChannel, "decodeMemoryModeNoDisp -> rm: %02X\n", inst.rm);
+
+  int16_t disp = -1;
+  if (inst.rm == 0b110) {
+    int byte0 = inst.dispLo;
+    int byte1 = inst.dispHi;
+    disp = (byte1 << 8) | byte0;
+    fprintf(verboseChannel, "  -> disp: %04X\n", disp);
+  }
+
+  switch (inst.rm) {
+  case BX_SI:
+    printf("[bx + si]");
+    break;
+  case BX_DI:
+    printf("[bx + di]");
+    break;
+  case BP_SI:
+    printf("[bp + si]");
+    break;
+  case BP_DI:
+    printf("[bp + di]");
+    break;
+  case SI_:
+    printf("[si]");
+    break;
+  case DI_:
+    printf("[di]");
+    break;
+  case BP_:
+    disp <= 0 ? printf("[bp]") : printf("[%d]", disp);
+    break;
+  case BX_:
+    printf("[bx]");
     break;
   default:
     break;
@@ -200,6 +261,35 @@ void disassembleMemoryMode16BitDisp(int rm, int byte1, int byte2) {
   case BX_:
     printf("[bx + %d]", disp);
     break;
+  default:
+    break;
+  }
+}
+
+void disassembleRMFromInstruction(Instruction inst) {
+  int mod = inst.mod;
+  int w = inst.w;
+  int rm = inst.rm;
+
+  fprintf(verboseChannel, "decodeRM -> %02X %02X %02X\n", w, mod, rm);
+
+  switch (mod) {
+  case MEMORY_MODE_NO_DISP: {
+    disassembleMemoryModeNoDispFromInstruction(inst);
+    break;
+  }
+  case MEMORY_MODE_8_BIT_DISP: {
+    disassemblyMemoryMode8BitDisp(rm, inst.dispLo);
+    break;
+  }
+  case MEMORY_MODE_16_BIT_DISP: {
+    disassembleMemoryMode16BitDisp(rm, inst.dispLo, inst.dispHi);
+    break;
+  }
+  case REGISTER_MODE: {
+    disassembleREG(w, rm);
+    break;
+  }
   default:
     break;
   }
