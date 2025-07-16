@@ -3,6 +3,8 @@
 #include "hardware.h"
 #include <stdio.h>
 
+void initDisassembly() { printf("bits 16\n"); }
+
 void disassembleImmediateToAccumulator(Instruction inst) {
   // always accumulator reg = 0
   disassembleREG(inst.w, inst.reg);

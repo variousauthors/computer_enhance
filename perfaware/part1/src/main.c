@@ -16,15 +16,29 @@
 #include <string.h>
 
 int main(int argc, char *argv[]) {
-  // last arg is always the filename
-  source = fopen(argv[argc - 1], "rb");
+  const char *filename = argv[argc - 1];
 
-  if (source == NULL) {
-    perror("Error opening file");
+  FILE *file = fopen(filename, "rb");
 
+  if (!file) {
+    perror("Failed to open file");
     return 1;
   }
 
+  // Seek to end to determine file size
+  fseek(file, 0, SEEK_END);
+  long size = ftell(file);
+  rewind(file);
+
+  // Read file into buffer
+  uint8_t bytesRead = fread(MEMORY, 1, size, file);
+  if (bytesRead != size) {
+    perror("Failed to read entire file");
+    fclose(file);
+    return 1;
+  }
+
+  // do the args
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "-exec") == 0) {
       exec = 1;
@@ -41,10 +55,13 @@ int main(int argc, char *argv[]) {
     verboseChannel = fopen("/dev/null", "w");
   }
 
-  printf("bits 16\n");
+  // start the dissasembly
+  initDisassembly();
 
   int byte;
-  while ((byte = nextByte()) != EOF) {
+  while (IP < bytesRead) {
+    byte = nextByte();
+
     int lo = (byte & 0b00001111);
     int hi = (byte & 0b11110000) >> 4;
 
@@ -65,7 +82,7 @@ int main(int argc, char *argv[]) {
     printf("%s: 0x%04X\n", REGISTER_NAMES[7], REGISTERS[7]);
 
     printf("flags: %c%c\n", FLAGS.SF ? 'S' : ' ', FLAGS.ZF ? 'Z' : ' ');
-  }
 
-  fclose(source);
+    printf("ip: 0x%04X\n", IP);
+  }
 }

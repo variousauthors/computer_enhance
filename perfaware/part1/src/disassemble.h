@@ -10,3 +10,4 @@ void disassembleREG(int w, int reg);
 void disassembleRM(Instruction inst);
 void disassembleByte(int byte);
 void disassembleBytes(int byte1, int byte2);
+void initDisassembly();

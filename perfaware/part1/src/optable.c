@@ -7,8 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define nextByte() (fgetc(source))
-
 void NOOP(int byte0) {
   fprintf(verboseChannel, "hit NOOP while parsing %02X\n", byte0);
   exit(1);

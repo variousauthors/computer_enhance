@@ -22,8 +22,15 @@
 #define MOV_IMM_W_MASK 0b00001000
 #define MOV_IMM_REG_MASK 0b00000111
 
+uint8_t MEMORY[1024 * 1024];
+
 uint16_t REGISTERS[8];
 char *REGISTER_NAMES[8];
+
+uint16_t IP;
+
+#define setIP(addr) (IP = addr)
+#define nextByte() (MEMORY[IP++])
 
 typedef struct Flags {
   unsigned CF : 1;
