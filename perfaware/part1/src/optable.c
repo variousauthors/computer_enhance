@@ -1,6 +1,7 @@
 #include "optable.h"
 #include "decode.h"
 #include "disassemble.h"
+#include "execute.h"
 #include "global.h"
 #include "hardware.h"
 #include <stdio.h>
@@ -48,6 +49,12 @@ void MOV_(int byte1) {
 
   Instruction inst = decodeRegisterMemoryToFromRegister(byte1);
   disassembleRegisterMemoryToFromRegister(inst);
+
+  if (exec) {
+    if (inst.mod == REGISTER_MODE) {
+      storeRegisterToRegister(inst);
+    }
+  }
 }
 
 // add immediate to accumulator
@@ -180,18 +187,15 @@ void MOVI(int byte) {
   disassembleREG(inst.w, inst.reg);
   printf(", ");
 
-  if (byte & MOV_IMM_W_MASK) {
+  if (inst.w) {
     disassembleBytes(inst.data1, inst.data2);
 
-    if (exec) {
-      registerStore16(inst.w, inst.reg, inst.data1, inst.data2);
-    }
   } else {
     disassembleByte(inst.data1);
+  }
 
-    if (exec) {
-      registerStore8(inst.w, inst.reg, inst.data1);
-    }
+  if (exec) {
+    storeImmediateToRegister(inst);
   }
 
   printf("\n");

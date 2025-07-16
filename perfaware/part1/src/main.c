@@ -3,6 +3,8 @@
 #include "decode.h"
 #include "disassemble.c"
 #include "disassemble.h"
+#include "execute.c"
+#include "execute.h"
 #include "global.c"
 #include "global.h"
 #include "hardware.c"
@@ -53,9 +55,14 @@ int main(int argc, char *argv[]) {
 
   if (exec) {
     printf("registers:\n");
-    for (int i = 0; i < ArrayCount(REGISTERS); i++) {
-      printf("%d: %02X\n", i, REGISTERS[i]);
-    }
+    printf("%s: 0x%04X\n", REGISTER_NAMES[0], REGISTERS[0]);
+    printf("%s: 0x%04X\n", REGISTER_NAMES[3], REGISTERS[3]);
+    printf("%s: 0x%04X\n", REGISTER_NAMES[1], REGISTERS[1]);
+    printf("%s: 0x%04X\n", REGISTER_NAMES[2], REGISTERS[2]);
+    printf("%s: 0x%04X\n", REGISTER_NAMES[4], REGISTERS[4]);
+    printf("%s: 0x%04X\n", REGISTER_NAMES[5], REGISTERS[5]);
+    printf("%s: 0x%04X\n", REGISTER_NAMES[6], REGISTERS[6]);
+    printf("%s: 0x%04X\n", REGISTER_NAMES[7], REGISTERS[7]);
   }
 
   fclose(source);

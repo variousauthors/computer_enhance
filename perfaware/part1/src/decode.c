@@ -125,7 +125,6 @@ Instruction decodeMOVR(int byte1) {
   inst.rm = (byte2 & RM_MASK);
 
   decodeDisplacement(&inst);
-
   decodeData(&inst);
 
   debugInstruction(inst);

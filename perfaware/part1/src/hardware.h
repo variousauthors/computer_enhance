@@ -23,6 +23,7 @@
 #define MOV_IMM_REG_MASK 0b00000111
 
 uint16_t REGISTERS[8];
+char *REGISTER_NAMES[8];
 
 enum MOD {
   MEMORY_MODE_NO_DISP, // DISP when R/M is 110
@@ -71,11 +72,5 @@ enum IMED_CODE {
   IMED_XOR,
   IMED_CMP,
 };
-
-void registerStore8(int w, REG_ENCODING reg, uint8_t byte1);
-void registerStore16(int w, REG_ENCODING reg, uint8_t byte1, uint8_t byte2);
-
-void storeRegisterMemoryToFromRegister(int d, int w, int rm, int reg, int byte1,
-                                       int byte2);
 
 #endif
