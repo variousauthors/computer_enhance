@@ -33,3 +33,7 @@ diff out listing_0045_challenge_register_movs
 ./build.sh && ./main listing_0046_add_sub_cmp > out.asm 
 nasm out.asm 
 diff out listing_0046_add_sub_cmp
+
+./build.sh && ./main listing_0048_ip_register > out.asm 
+nasm out.asm 
+diff out listing_0048_ip_register

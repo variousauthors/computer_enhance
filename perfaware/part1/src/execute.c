@@ -175,3 +175,21 @@ void mathImmediateToAccumulator(Instruction inst) {
 
   updateRegister(destIndex, destValue, inst.w, dest & 0b100);
 }
+
+void executeJump(Instruction inst) {
+  switch (inst.op) {
+  case JUMP_JNZ: {
+    if (!FLAGS.ZF) {
+      printf("BEFORE %04X\n", IP);
+      printf("IP-INC8 %02X\n", inst.data1);
+      printf("IP-INC8 %d\n", (int16_t)(int8_t)inst.data1);
+      IP += (int16_t)(int8_t)inst.data1;
+      printf("AFTER %04X\n", IP);
+    }
+    break;
+  }
+
+  default:
+    break;
+  }
+}

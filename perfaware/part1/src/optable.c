@@ -247,36 +247,40 @@ void MOVR(int byte1) {
  * JUMPS *
  *********/
 
-#define JUMP(op)                                                               \
+#define JUMP(op, byte1)                                                        \
   do {                                                                         \
+    Instruction inst = decodeJump(byte1);                                      \
     printf("%s ", op);                                                         \
-    disassembleByte(nextByte());                                               \
+    disassembleByte(inst.data1);                                               \
     printf("\n");                                                              \
+    if (exec) {                                                                \
+      executeJump(inst);                                                       \
+    };                                                                         \
   } while (0)
 
-void JNZ_(int byte1) { JUMP("jnz"); }
-void JE__(int byte1) { JUMP("je"); }
-void JL__(int byte1) { JUMP("jl"); }
-void JLE_(int byte1) { JUMP("jle"); }
-void JNLE(int byte1) { JUMP("jnle"); }
-void JB__(int byte1) { JUMP("jb"); }
-void JBE_(int byte1) { JUMP("jbe"); }
-void JNBE(int byte1) { JUMP("jnbe"); }
-void JP__(int byte1) { JUMP("jp"); }
-void JO__(int byte1) { JUMP("jo"); }
-void JS__(int byte1) { JUMP("js"); }
-void JNE_(int byte1) { JUMP("jne"); }
-void JNL_(int byte1) { JUMP("jnl"); }
-void JG__(int byte1) { JUMP("jg"); }
-void JNB_(int byte1) { JUMP("jnb"); }
-void JA__(int byte1) { JUMP("ja"); }
-void JNP_(int byte1) { JUMP("jnp"); }
-void JNO_(int byte1) { JUMP("jno"); }
-void JNS_(int byte1) { JUMP("jns"); }
-void LOOP(int byte1) { JUMP("loop"); }
-void LOPZ(int byte1) { JUMP("loopz"); }
-void LPNZ(int byte1) { JUMP("loopnz"); }
-void JCXZ(int byte1) { JUMP("jcxz"); }
+void JNZ_(int byte1) { JUMP("jnz", byte1); }
+void JE__(int byte1) { JUMP("je", byte1); }
+void JL__(int byte1) { JUMP("jl", byte1); }
+void JLE_(int byte1) { JUMP("jle", byte1); }
+void JNLE(int byte1) { JUMP("jnle", byte1); }
+void JB__(int byte1) { JUMP("jb", byte1); }
+void JBE_(int byte1) { JUMP("jbe", byte1); }
+void JNBE(int byte1) { JUMP("jnbe", byte1); }
+void JP__(int byte1) { JUMP("jp", byte1); }
+void JO__(int byte1) { JUMP("jo", byte1); }
+void JS__(int byte1) { JUMP("js", byte1); }
+void JNE_(int byte1) { JUMP("jne", byte1); }
+void JNL_(int byte1) { JUMP("jnl", byte1); }
+void JG__(int byte1) { JUMP("jg", byte1); }
+void JNB_(int byte1) { JUMP("jnb", byte1); }
+void JA__(int byte1) { JUMP("ja", byte1); }
+void JNP_(int byte1) { JUMP("jnp", byte1); }
+void JNO_(int byte1) { JUMP("jno", byte1); }
+void JNS_(int byte1) { JUMP("jns", byte1); }
+void LOOP(int byte1) { JUMP("loop", byte1); }
+void LOPZ(int byte1) { JUMP("loopz", byte1); }
+void LPNZ(int byte1) { JUMP("loopnz", byte1); }
+void JCXZ(int byte1) { JUMP("jcxz", byte1); }
 
 /*************
  * JUMPS END *

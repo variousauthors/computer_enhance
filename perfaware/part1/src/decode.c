@@ -167,3 +167,14 @@ Instruction decodeImmediateToAccumulatore(int byte1) {
 
   return inst;
 }
+
+Instruction decodeJump(int byte1) {
+  Instruction inst = {0};
+
+  inst.op = byte1;
+  inst.data1 = nextByte();
+
+  debugInstruction(inst);
+
+  return inst;
+}

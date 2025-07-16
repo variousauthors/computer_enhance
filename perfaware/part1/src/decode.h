@@ -54,5 +54,6 @@ Instruction decodeMOVR(int byte1);
 Instruction decodeImmediateToAccumulatore(int byte1);
 Instruction decodeRegisterMemoryToFromRegister(int byte1);
 Instruction decodeImmediateToRegisterMemory(int byte1);
+Instruction decodeJump(int byte1);
 
 #endif

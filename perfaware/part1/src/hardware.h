@@ -88,6 +88,10 @@ enum RM_ENCODING {
   BX_,
 };
 
+enum JUMP_CODE {
+  JUMP_JNZ = 0b01110101,
+};
+
 enum ALU_CODE {
   ALU_ADD,
   ALU_OR,
