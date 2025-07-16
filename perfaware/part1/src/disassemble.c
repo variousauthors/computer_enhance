@@ -3,7 +3,7 @@
 #include "hardware.h"
 #include <stdio.h>
 
-void disassembleImmediateToAccumulatorFromInstruction(Instruction inst) {
+void disassembleImmediateToAccumulator(Instruction inst) {
   // always accumulator reg = 0
   disassembleREG(inst.w, inst.reg);
   printf(", ");
@@ -17,7 +17,7 @@ void disassembleImmediateToAccumulatorFromInstruction(Instruction inst) {
   printf("\n");
 }
 
-void disassembleRegisterMemoryToFromRegisterFromInstruction(Instruction inst) {
+void disassembleRegisterMemoryToFromRegister(Instruction inst) {
   int w = inst.w;
   int d = inst.d;
   int reg = inst.reg;
@@ -26,33 +26,11 @@ void disassembleRegisterMemoryToFromRegisterFromInstruction(Instruction inst) {
     // reg is dest
     disassembleREG(w, reg);
     printf(", ");
-    disassembleRMFromInstruction(inst);
+    disassembleRM(inst);
     printf("\n");
   } else {
     // reg is source
-    disassembleRMFromInstruction(inst);
-    printf(", ");
-    disassembleREG(w, reg);
-    printf("\n");
-  }
-}
-
-void disassembleRegisterMemoryToFromRegister(int byte1) {
-  int byte2 = nextByte();
-
-  int w = byte1 & BIT_W_MASK;
-  int d = byte1 & BIT_D_MASK;
-  int reg = (byte2 & REG_MASK) >> 3;
-
-  if (d) {
-    // reg is dest
-    disassembleREG(w, reg);
-    printf(", ");
-    disassembleRM(byte1, byte2);
-    printf("\n");
-  } else {
-    // reg is source
-    disassembleRM(byte1, byte2);
+    disassembleRM(inst);
     printf(", ");
     disassembleREG(w, reg);
     printf("\n");
@@ -118,7 +96,7 @@ void disassembleREG(int w, int reg) {
   }
 }
 
-void disassembleMemoryModeNoDispFromInstruction(Instruction inst) {
+void disassembleMemoryModeNoDisp(Instruction inst) {
   fprintf(verboseChannel, "decodeMemoryModeNoDisp -> rm: %02X\n", inst.rm);
 
   int16_t disp = -1;
@@ -130,47 +108,6 @@ void disassembleMemoryModeNoDispFromInstruction(Instruction inst) {
   }
 
   switch (inst.rm) {
-  case BX_SI:
-    printf("[bx + si]");
-    break;
-  case BX_DI:
-    printf("[bx + di]");
-    break;
-  case BP_SI:
-    printf("[bp + si]");
-    break;
-  case BP_DI:
-    printf("[bp + di]");
-    break;
-  case SI_:
-    printf("[si]");
-    break;
-  case DI_:
-    printf("[di]");
-    break;
-  case BP_:
-    disp <= 0 ? printf("[bp]") : printf("[%d]", disp);
-    break;
-  case BX_:
-    printf("[bx]");
-    break;
-  default:
-    break;
-  }
-}
-
-void disassembleMemoryModeNoDisp(int rm) {
-  fprintf(verboseChannel, "decodeMemoryModeNoDisp -> rm: %02X\n", rm);
-
-  int16_t disp = -1;
-  if (rm == 0b110) {
-    int byte0 = nextByte();
-    int byte1 = nextByte();
-    disp = (byte1 << 8) | byte0;
-    fprintf(verboseChannel, "  -> disp: %02X\n", disp);
-  }
-
-  switch (rm) {
   case BX_SI:
     printf("[bx + si]");
     break;
@@ -264,7 +201,7 @@ void disassembleMemoryMode16BitDisp(int rm, int byte1, int byte2) {
   }
 }
 
-void disassembleRMFromInstruction(Instruction inst) {
+void disassembleRM(Instruction inst) {
   int mod = inst.mod;
   int w = inst.w;
   int rm = inst.rm;
@@ -273,7 +210,7 @@ void disassembleRMFromInstruction(Instruction inst) {
 
   switch (mod) {
   case MEMORY_MODE_NO_DISP: {
-    disassembleMemoryModeNoDispFromInstruction(inst);
+    disassembleMemoryModeNoDisp(inst);
     break;
   }
   case MEMORY_MODE_8_BIT_DISP: {
@@ -282,35 +219,6 @@ void disassembleRMFromInstruction(Instruction inst) {
   }
   case MEMORY_MODE_16_BIT_DISP: {
     disassembleMemoryMode16BitDisp(rm, inst.dispLo, inst.dispHi);
-    break;
-  }
-  case REGISTER_MODE: {
-    disassembleREG(w, rm);
-    break;
-  }
-  default:
-    break;
-  }
-}
-
-void disassembleRM(int byte1, int byte2) {
-  int mod = (byte2 & MOV_MOD_MASK) >> 6;
-  int w = byte1 & MOV_W_MASK;
-  int rm = byte2 & MOV_RM_MASK;
-
-  fprintf(verboseChannel, "decodeRM -> %02X %02X %02X\n", w, mod, rm);
-
-  switch (mod) {
-  case MEMORY_MODE_NO_DISP: {
-    disassembleMemoryModeNoDisp(rm);
-    break;
-  }
-  case MEMORY_MODE_8_BIT_DISP: {
-    disassemblyMemoryMode8BitDisp(rm, nextByte());
-    break;
-  }
-  case MEMORY_MODE_16_BIT_DISP: {
-    disassembleMemoryMode16BitDisp(rm, nextByte(), nextByte());
     break;
   }
   case REGISTER_MODE: {

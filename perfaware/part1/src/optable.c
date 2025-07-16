@@ -20,7 +20,7 @@ void ADD_(int byte1) {
   printf("add ");
 
   Instruction inst = decodeRegisterMemoryToFromRegister(byte1);
-  disassembleRegisterMemoryToFromRegisterFromInstruction(inst);
+  disassembleRegisterMemoryToFromRegister(inst);
 }
 
 // add register/memory to/from register
@@ -29,7 +29,7 @@ void SUB_(int byte1) {
   printf("sub ");
 
   Instruction inst = decodeRegisterMemoryToFromRegister(byte1);
-  disassembleRegisterMemoryToFromRegisterFromInstruction(inst);
+  disassembleRegisterMemoryToFromRegister(inst);
 }
 
 // compare register/memory with register
@@ -38,7 +38,7 @@ void CMP_(int byte1) {
   printf("cmp ");
 
   Instruction inst = decodeRegisterMemoryToFromRegister(byte1);
-  disassembleRegisterMemoryToFromRegisterFromInstruction(inst);
+  disassembleRegisterMemoryToFromRegister(inst);
 }
 
 // register/memory to/from register
@@ -47,7 +47,7 @@ void MOV_(int byte1) {
   printf("mov ");
 
   Instruction inst = decodeRegisterMemoryToFromRegister(byte1);
-  disassembleRegisterMemoryToFromRegisterFromInstruction(inst);
+  disassembleRegisterMemoryToFromRegister(inst);
 }
 
 // add immediate to accumulator
@@ -56,7 +56,7 @@ void ADDA(int byte1) {
   fprintf(verboseChannel, "ADDA -> %02X\n", byte1);
 
   Instruction inst = decodeImmediateToAccumulatore(byte1);
-  disassembleImmediateToAccumulatorFromInstruction(inst);
+  disassembleImmediateToAccumulator(inst);
 }
 
 // immediate with accumulator
@@ -65,7 +65,7 @@ void CMPA(int byte1) {
   fprintf(verboseChannel, "CMPA -> %02X\n", byte1);
 
   Instruction inst = decodeImmediateToAccumulatore(byte1);
-  disassembleImmediateToAccumulatorFromInstruction(inst);
+  disassembleImmediateToAccumulator(inst);
 }
 
 // add immediate to register/memory
@@ -76,7 +76,7 @@ void SUBA(int byte1) {
   fprintf(verboseChannel, "SUBA -> %02X\n", byte1);
 
   Instruction inst = decodeImmediateToAccumulatore(byte1);
-  disassembleImmediateToAccumulatorFromInstruction(inst);
+  disassembleImmediateToAccumulator(inst);
 }
 
 // memory to accumulator / accumulator to memory
@@ -95,9 +95,9 @@ void MOVA(int byte0) {
     // always accumulator reg = 0
     disassembleREG(inst.w, inst.reg);
     printf(", ");
-    disassembleRMFromInstruction(inst);
+    disassembleRM(inst);
   } else {
-    disassembleRMFromInstruction(inst);
+    disassembleRM(inst);
     printf(", ");
     // always accumulator reg = 0
     disassembleREG(inst.w, inst.reg);
@@ -140,7 +140,7 @@ void IMED(int byte1) {
     printf("byte ");
   }
 
-  disassembleRMFromInstruction(inst);
+  disassembleRM(inst);
   printf(", ");
 
   switch (inst.s | inst.w) {
@@ -202,7 +202,7 @@ void MOVR(int byte1) {
   Instruction inst = decodeMOVR(byte1);
   printf("mov ");
 
-  disassembleRMFromInstruction(inst);
+  disassembleRM(inst);
   printf(", ");
 
   if (inst.w) {
