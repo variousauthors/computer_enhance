@@ -1,7 +1,7 @@
 #include "decode.h"
 #include <string.h>
 
-void disassembleImmediateToAccumulator(int byte1);
+void disassembleImmediateToAccumulatorFromInstruction(Instruction inst);
 void disassembleRegisterMemoryToFromRegisterFromInstruction(Instruction inst);
 void disassembleRegisterMemoryToFromRegister(int byte1);
 void disassembleREG(int w, int reg);

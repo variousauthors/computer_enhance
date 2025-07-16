@@ -3,17 +3,15 @@
 #include "hardware.h"
 #include <stdio.h>
 
-void disassembleImmediateToAccumulator(int byte1) {
-  int w = byte1 & BIT_W_MASK;
-
+void disassembleImmediateToAccumulatorFromInstruction(Instruction inst) {
   // always accumulator reg = 0
-  disassembleREG(w, 0);
+  disassembleREG(inst.w, inst.reg);
   printf(", ");
 
-  if (w) {
-    disassembleBytes(nextByte(), nextByte());
+  if (inst.w) {
+    disassembleBytes(inst.data1, inst.data2);
   } else {
-    disassembleByte(nextByte());
+    disassembleByte(inst.data1);
   }
 
   printf("\n");

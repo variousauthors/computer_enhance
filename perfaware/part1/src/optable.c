@@ -19,7 +19,8 @@ void ADD_(int byte1) {
   fprintf(verboseChannel, "ADD -> %02X\n", byte1);
   printf("add ");
 
-  disassembleRegisterMemoryToFromRegister(byte1);
+  Instruction inst = decodeRegisterMemoryToFromRegister(byte1);
+  disassembleRegisterMemoryToFromRegisterFromInstruction(inst);
 }
 
 // add register/memory to/from register
@@ -27,7 +28,8 @@ void SUB_(int byte1) {
   fprintf(verboseChannel, "SUB -> %02X\n", byte1);
   printf("sub ");
 
-  disassembleRegisterMemoryToFromRegister(byte1);
+  Instruction inst = decodeRegisterMemoryToFromRegister(byte1);
+  disassembleRegisterMemoryToFromRegisterFromInstruction(inst);
 }
 
 // compare register/memory with register
@@ -35,7 +37,8 @@ void CMP_(int byte1) {
   fprintf(verboseChannel, "CMP_ -> %02X\n", byte1);
   printf("cmp ");
 
-  disassembleRegisterMemoryToFromRegister(byte1);
+  Instruction inst = decodeRegisterMemoryToFromRegister(byte1);
+  disassembleRegisterMemoryToFromRegisterFromInstruction(inst);
 }
 
 // register/memory to/from register
@@ -43,8 +46,7 @@ void MOV_(int byte1) {
   fprintf(verboseChannel, "MOV_ -> %02X\n", byte1);
   printf("mov ");
 
-  Instruction inst = decodeMOV_(byte1);
-
+  Instruction inst = decodeRegisterMemoryToFromRegister(byte1);
   disassembleRegisterMemoryToFromRegisterFromInstruction(inst);
 }
 
@@ -53,7 +55,8 @@ void ADDA(int byte1) {
   printf("add ");
   fprintf(verboseChannel, "ADDA -> %02X\n", byte1);
 
-  disassembleImmediateToAccumulator(byte1);
+  Instruction inst = decodeImmediateToAccumulatore(byte1);
+  disassembleImmediateToAccumulatorFromInstruction(inst);
 }
 
 // immediate with accumulator
@@ -61,7 +64,8 @@ void CMPA(int byte1) {
   printf("cmp ");
   fprintf(verboseChannel, "CMPA -> %02X\n", byte1);
 
-  disassembleImmediateToAccumulator(byte1);
+  Instruction inst = decodeImmediateToAccumulatore(byte1);
+  disassembleImmediateToAccumulatorFromInstruction(inst);
 }
 
 // add immediate to register/memory
@@ -71,7 +75,8 @@ void SUBA(int byte1) {
   printf("sub ");
   fprintf(verboseChannel, "SUBA -> %02X\n", byte1);
 
-  disassembleImmediateToAccumulator(byte1);
+  Instruction inst = decodeImmediateToAccumulatore(byte1);
+  disassembleImmediateToAccumulatorFromInstruction(inst);
 }
 
 // memory to accumulator / accumulator to memory
@@ -105,10 +110,11 @@ void MOVA(int byte0) {
 
 // immediate mode add, sub, cmp
 void IMED(int byte1) {
-  int byte2 = nextByte();
-  fprintf(verboseChannel, "IMED -> %02X %02X\n", byte1, byte2);
+  Instruction inst = decodeImmediateToRegisterMemory(byte1);
 
-  int code = (byte2 & IMED_CODE_MASK) >> 3;
+  fprintf(verboseChannel, "IMED -> %02X %02X\n", inst.dispLo, inst.dispHi);
+
+  int code = inst.reg;
 
   fprintf(verboseChannel, "IMED -> code: %02X\n", code);
 
@@ -128,36 +134,32 @@ void IMED(int byte1) {
     break;
   }
 
-  int s = byte1 & IMED_SIGN_EXT_MASK;
-  int w = byte1 & BIT_W_MASK;
-
-  if (w) {
+  if (inst.w) {
     printf("word ");
   } else {
     printf("byte ");
   }
 
-  disassembleRM(byte1, byte2);
+  disassembleRMFromInstruction(inst);
   printf(", ");
 
-  switch (s | w) {
+  switch (inst.s | inst.w) {
   case 0b00: {
-    disassembleByte(nextByte());
+    disassembleByte(inst.data1);
     break;
   }
   case 0b01: {
-    disassembleBytes(nextByte(), nextByte());
+    disassembleBytes(inst.data1, inst.data2);
     break;
   }
   case 0b10: {
     // redundant? but it's in the table
-    disassembleByte(nextByte());
+    disassembleByte(inst.data1);
     break;
   }
   case 0b11: {
     // sign extended 8-bit data to 16-bits
-    int byte3 = nextByte();
-    disassembleBytes(byte3 & 0x00FF, (byte3 & 0xFF00) >> 8);
+    disassembleBytes(inst.data1 & 0x00FF, (inst.data1 & 0xFF00) >> 8);
     break;
   }
   default:

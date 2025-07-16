@@ -4,16 +4,17 @@
 
 void debugInstruction(Instruction inst) {
   fprintf(verboseChannel,
-          "INST: op: %02X, d: %01X, w: %01X, mod: %01X, reg: %01X, rm: %01X, "
+          "INST: op: %02X, s: %01X, d: %01X, w: %01X, mod: %01X, reg: %01X, "
+          "rm: %01X, "
           "dispLo: %02X, dispHi: %02X, data1: %02X, data2: %02X\n",
-          inst.op, inst.d, inst.w, inst.mod, inst.reg, inst.rm, inst.dispLo,
-          inst.dispHi, inst.data1, inst.data2);
+          inst.op, inst.s, inst.d, inst.w, inst.mod, inst.reg, inst.rm,
+          inst.dispLo, inst.dispHi, inst.data1, inst.data2);
 }
 
 void decodeData(Instruction *inst) {
   inst->data1 = nextByte();
 
-  if (inst->w) {
+  if (!inst->s && inst->w) {
     inst->data2 = nextByte();
   }
 }
@@ -46,7 +47,7 @@ void decodeDisplacement(Instruction *inst) {
 }
 
 // register/memory to/from register
-Instruction decodeMOV_(int byte1) {
+Instruction decodeRegisterMemoryToFromRegister(int byte1) {
   Instruction inst = {0};
 
   int byte2 = nextByte();
@@ -54,8 +55,9 @@ Instruction decodeMOV_(int byte1) {
   inst.op = byte1;
   inst.d = (byte1 & BIT_D_MASK) >> 1;
   inst.w = byte1 & BIT_W_MASK;
-  inst.reg = (byte2 & REG_MASK) >> 3;
+
   inst.mod = (byte2 & 0b11000000) >> 6;
+  inst.reg = (byte2 & REG_MASK) >> 3;
   inst.rm = (byte2 & RM_MASK);
 
   decodeDisplacement(&inst);
@@ -126,6 +128,37 @@ Instruction decodeMOVR(int byte1) {
 
   decodeData(&inst);
 
+  debugInstruction(inst);
+
+  return inst;
+}
+
+Instruction decodeImmediateToRegisterMemory(int byte1) {
+  Instruction inst = {0};
+
+  int byte2 = nextByte();
+
+  inst.op = byte1;
+  inst.s = (byte1 & IMED_BIT_S_MASK) >> 1;
+  inst.w = byte1 & BIT_W_MASK;
+  inst.mod = (byte2 & MOD_MASK) >> 6;
+  inst.reg = (byte2 & REG_MASK) >> 3;
+  inst.rm = byte2 & RM_MASK;
+
+  decodeDisplacement(&inst);
+  decodeData(&inst);
+
+  debugInstruction(inst);
+
+  return inst;
+}
+
+Instruction decodeImmediateToAccumulatore(int byte1) {
+  Instruction inst = {0};
+
+  inst.w = byte1 & BIT_W_MASK;
+
+  decodeData(&inst);
   debugInstruction(inst);
 
   return inst;

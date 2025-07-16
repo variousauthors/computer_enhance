@@ -10,6 +10,7 @@ typedef struct Instruction {
   uint8_t op;
 
   unsigned d : 1;
+  unsigned s : 1;
   unsigned w : 1;
   unsigned mod : 2;
   unsigned reg : 3;
@@ -48,7 +49,8 @@ Instruction decodeMOVI(int byte1);
 // immediate to register/memory
 Instruction decodeMOVR(int byte1);
 
-// register/memory to/from register
-Instruction decodeMOV_(int byte1);
+Instruction decodeImmediateToAccumulatore(int byte1);
+Instruction decodeRegisterMemoryToFromRegister(int byte1);
+Instruction decodeImmediateToRegisterMemory(int byte1);
 
 #endif
