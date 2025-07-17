@@ -184,8 +184,13 @@ void moveRegisterMemoryToFromRegister(Instruction inst) {
     // register is dest
     updateRegister(destIndex, sourceValue, inst.w, dest & 0b100);
   } else {
-    // memory is dest
-    updateMemory(destIndex, sourceValue, inst.w);
+    if (inst.mod == 0b11) {
+      // register is dest
+      updateRegister(destIndex, sourceValue, inst.w, dest & 0b100);
+    } else {
+      // memory is dest
+      updateMemory(destIndex, sourceValue, inst.w);
+    }
   }
 }
 
@@ -208,21 +213,55 @@ void moveRegisterToRegister(Instruction inst) {
 }
 
 void mathRegisterMemoryAndRegisterToEither(Instruction inst) {
-  int dest = inst.d ? inst.reg : inst.rm;
-  int destIndex = getRegisterIndex(inst.w, dest);
-  int source = inst.d ? inst.rm : inst.reg;
-  int sourceIndex = getRegisterIndex(inst.w, source);
 
-  int sourceValue = inst.w           ? REGISTERS[sourceIndex]
-                    : source & 0b100 ? LOAD_HIGH(sourceIndex)
-                                     : LOAD_LOW(sourceIndex);
+  if (inst.mod == REGISTER_MODE) {
+    // rm is register
+    // register and register to register
+    fprintf(verboseChannel, "register and register to register\n");
+    int dest = inst.d ? inst.reg : inst.rm;
+    int source = inst.d ? inst.rm : inst.reg;
+    int destIndex = getRegisterIndex(inst.w, dest);
+    int sourceIndex = getRegisterIndex(inst.w, source);
 
-  int destValue = inst.w         ? REGISTERS[destIndex]
-                  : dest & 0b100 ? LOAD_HIGH(destIndex)
-                                 : LOAD_LOW(destIndex);
+    int destValue = loadRegister(destIndex, inst.w, dest & 0b100);
+    int sourceValue = loadRegister(sourceIndex, inst.w, source & 0b100);
 
-  performMath(inst, &destValue, sourceValue);
-  updateRegister(destIndex, destValue, inst.w, dest & 0b100);
+    performMath(inst, &destValue, sourceValue);
+
+    updateRegister(destIndex, destValue, inst.w, dest & 0b100);
+  } else {
+    // rm is memory
+    if (inst.d) {
+      // register and memory to register
+      fprintf(verboseChannel, "register and memory to register\n");
+      int dest = inst.reg;
+      int source = inst.rm;
+      int destIndex = getRegisterIndex(inst.w, dest);
+      int sourceIndex = getMemoryIndex(inst);
+
+      int destValue = loadRegister(destIndex, inst.w, dest & 0b100);
+      int sourceValue = loadMemory(sourceIndex, inst.w);
+
+      performMath(inst, &destValue, sourceValue);
+
+      updateRegister(destIndex, destValue, inst.w, dest & 0b100);
+
+    } else {
+      // register and memory to memory
+      fprintf(verboseChannel, "register and memory to memory\n");
+      int dest = inst.rm;
+      int source = inst.reg;
+      int destIndex = getMemoryIndex(inst);
+      int sourceIndex = getRegisterIndex(inst.w, source);
+
+      int destValue = loadMemory(destIndex, inst.w);
+      int sourceValue = loadRegister(sourceIndex, inst.w, source & 0b100);
+
+      performMath(inst, &destValue, sourceValue);
+
+      updateMemory(destIndex, destValue, inst.w);
+    }
+  }
 }
 
 int getImmediateValue(Instruction inst) {

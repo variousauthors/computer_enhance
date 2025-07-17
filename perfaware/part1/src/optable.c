@@ -15,7 +15,7 @@ void NOOP(int byte0) {
 
 // add register/memory to/from register
 void ADD_(int byte1) {
-  fprintf(verboseChannel, "ADD -> %02X\n", byte1);
+  fprintf(verboseChannel, "ADD_ -> %02X\n", byte1);
   printf("add ");
 
   Instruction inst = decodeRegisterMemoryToFromRegister(byte1);
@@ -28,7 +28,7 @@ void ADD_(int byte1) {
 
 // add register/memory to/from register
 void SUB_(int byte1) {
-  fprintf(verboseChannel, "SUB -> %02X\n", byte1);
+  fprintf(verboseChannel, "SUB_ -> %02X\n", byte1);
   printf("sub ");
 
   Instruction inst = decodeRegisterMemoryToFromRegister(byte1);
