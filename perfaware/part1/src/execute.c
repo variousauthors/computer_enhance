@@ -4,6 +4,8 @@
 #include "hardware.h"
 #include <stdlib.h>
 
+int16_t RELEVANT_ADDRESSED[1024 * 1024] = {0};
+
 #define STORE_LOW(index, byte)                                                 \
   (REGISTERS[index] = (REGISTERS[index] & 0xFF00) | byte)
 #define STORE_HIGH(index, byte)                                                \
@@ -20,15 +22,21 @@
 #define REGISTER_TO_REGISTER_STORE_WIDE(index1, index2)                        \
   (REGISTERS[index1] = REGISTERS[index2])
 
+void performMath(Instruction inst, int *destValue, uint16_t sourceValue);
 int getRegisterIndex(int w, int reg) { return w ? reg : (reg & 0b011); }
 
 void updateMemory(int index, int value, int w) {
+  fprintf(verboseChannel, "updateMemory w: %d 0x%04X 0x%02X\n", w, index,
+          value);
   if (w) {
     // store two bytes
+    RELEVANT_ADDRESSED[index] = index;
     MEMORY[index++] = value & 0x00FF;
+    RELEVANT_ADDRESSED[index] = index;
     MEMORY[index] = value & 0xFF00;
   } else {
     MEMORY[index] = value;
+    RELEVANT_ADDRESSED[index] = index;
   }
 }
 
@@ -37,7 +45,7 @@ int loadMemory(int index, int w) {
   if (w) {
     // store two bytes
     int lo = MEMORY[index++];
-    int hi = MEMORY[index++];
+    int hi = MEMORY[index];
 
     return (hi << 8) | lo;
   } else {
@@ -213,25 +221,7 @@ void mathRegisterMemoryAndRegisterToEither(Instruction inst) {
                   : dest & 0b100 ? LOAD_HIGH(destIndex)
                                  : LOAD_LOW(destIndex);
 
-  switch (inst.code) {
-  case ALU_ADD: {
-    destValue += sourceValue;
-    break;
-  }
-  case ALU_SUB: {
-    destValue -= sourceValue;
-    break;
-  }
-  case ALU_CMP: {
-    int tmp = destValue - sourceValue;
-    break;
-  }
-  default:
-    fprintf(stderr, "unknown alu code %02X\n", inst.code);
-    exit(1);
-    break;
-  }
-
+  performMath(inst, &destValue, sourceValue);
   updateRegister(destIndex, destValue, inst.w, dest & 0b100);
 }
 
@@ -259,19 +249,21 @@ int getImmediateValue(Instruction inst) {
   }
 }
 
-int performMath(Instruction inst, uint16_t destValue, uint16_t sourceValue) {
+void performMath(Instruction inst, int *destValue, uint16_t sourceValue) {
   uint16_t tmp;
   switch (inst.code) {
   case ALU_ADD: {
-    tmp = destValue + sourceValue;
+    tmp = *destValue + sourceValue;
+    *destValue = tmp;
     break;
   }
   case ALU_SUB: {
-    tmp = destValue - sourceValue;
+    tmp = *destValue - sourceValue;
+    *destValue = tmp;
     break;
   }
   case ALU_CMP: {
-    tmp = destValue - sourceValue;
+    tmp = *destValue - sourceValue;
     break;
   }
   default:
@@ -282,9 +274,6 @@ int performMath(Instruction inst, uint16_t destValue, uint16_t sourceValue) {
 
   FLAGS.ZF = tmp == 0;
   FLAGS.SF = (tmp & 0x8000) != 0;
-  printf("wat %04X\n", tmp);
-
-  return tmp;
 }
 
 void mathImmediateToRegister(Instruction inst) {
@@ -297,7 +286,7 @@ void mathImmediateToRegister(Instruction inst) {
 
   int sourceValue = getImmediateValue(inst);
 
-  destValue = performMath(inst, destValue, sourceValue);
+  performMath(inst, &destValue, sourceValue);
 
   updateRegister(destIndex, destValue, inst.w, dest & 0b100);
 }
@@ -312,7 +301,7 @@ void mathImmediateToAccumulator(Instruction inst) {
 
   int sourceValue = getImmediateValue(inst);
 
-  destValue = performMath(inst, destValue, sourceValue);
+  performMath(inst, &destValue, sourceValue);
 
   updateRegister(destIndex, destValue, inst.w, dest & 0b100);
 }
@@ -321,11 +310,11 @@ void executeJump(Instruction inst) {
   switch (inst.op) {
   case JUMP_JNZ: {
     if (!FLAGS.ZF) {
-      printf("BEFORE %04X\n", IP);
-      printf("IP-INC8 %02X\n", inst.data1);
-      printf("IP-INC8 %d\n", (int16_t)(int8_t)inst.data1);
+      fprintf(verboseChannel, "BEFORE %04X\n", IP);
+      fprintf(verboseChannel, "IP-INC8 %02X\n", inst.data1);
+      fprintf(verboseChannel, "IP-INC8 %d\n", (int16_t)(int8_t)inst.data1);
       IP += (int16_t)(int8_t)inst.data1;
-      printf("AFTER %04X\n", IP);
+      fprintf(verboseChannel, "AFTER %04X\n", IP);
     }
     break;
   }

@@ -84,5 +84,12 @@ int main(int argc, char *argv[]) {
     printf("flags: %c%c\n", FLAGS.SF ? 'S' : ' ', FLAGS.ZF ? 'Z' : ' ');
 
     printf("ip: 0x%04X\n", IP);
+
+    printf("memory:\n");
+    for (int i = 0; i < ArrayCount(RELEVANT_ADDRESSED); i++) {
+      if (RELEVANT_ADDRESSED[i] > 0) {
+        printf("[0x%04X] = 0x%02X\n", i, MEMORY[i]);
+      }
+    }
   }
 }
