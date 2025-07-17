@@ -37,3 +37,7 @@ diff out listing_0046_add_sub_cmp
 ./build.sh && ./main listing_0048_ip_register > out.asm 
 nasm out.asm 
 diff out listing_0048_ip_register
+
+./build.sh && ./main listing_0051_memory_mov > out.asm 
+nasm out.asm 
+diff out listing_0051_memory_mov

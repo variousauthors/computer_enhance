@@ -61,9 +61,7 @@ void MOV_(int byte1) {
   disassembleRegisterMemoryToFromRegister(inst);
 
   if (exec) {
-    if (inst.mod == REGISTER_MODE) {
-      storeRegisterToRegister(inst);
-    }
+    moveRegisterMemoryToFromRegister(inst);
   }
 }
 
@@ -218,7 +216,7 @@ void MOVI(int byte) {
   }
 
   if (exec) {
-    storeImmediateToRegister(inst);
+    moveImmediateToRegister(inst);
   }
 
   printf("\n");
@@ -238,6 +236,10 @@ void MOVR(int byte1) {
   } else {
     printf("byte ");
     disassembleByte(inst.data1);
+  }
+
+  if (exec) {
+    moveImmediateToRegisterMemory(inst);
   }
 
   printf("\n");

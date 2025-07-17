@@ -24,6 +24,17 @@
 
 uint8_t MEMORY[1024 * 1024];
 
+enum REGISTER_INDEX {
+  INDEX_AX,
+  INDEX_CX,
+  INDEX_DX,
+  INDEX_BX,
+  INDEX_SP,
+  INDEX_BP,
+  INDEX_SI,
+  INDEX_DI,
+};
+
 uint16_t REGISTERS[8];
 char *REGISTER_NAMES[8];
 
