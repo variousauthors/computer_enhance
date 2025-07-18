@@ -1,5 +1,6 @@
 main
 out
-out.asm
+out.json
+out.f64
 test
 test.asm
