@@ -1,3 +1,4 @@
+#include <alloca.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,6 +53,47 @@ char *toStringToken(Token token) {
     return "T_ERROR";
   }
 }
+
+typedef enum JSONNodeType {
+  JSON_ERROR,
+  JSON_PAIR,
+  JSON_STRING,
+  JSON_NUMBER,
+  JSON_ARRAY,
+  JSON_OBJECT,
+} JSONNodeType;
+
+char *toStringJSONType(JSONNodeType type) {
+  switch (type) {
+  case JSON_ERROR:
+    return "error";
+  case JSON_PAIR:
+    return "pair";
+  case JSON_ARRAY:
+    return "array";
+  case JSON_STRING:
+    return "string";
+  case JSON_OBJECT:
+    return "object";
+  case JSON_NUMBER:
+    return "number";
+
+  default:
+    break;
+  }
+}
+typedef struct JSONNode {
+  JSONNodeType type;
+  struct JSONNode *next;
+  struct JSONNode *value;
+
+  char *key;
+  union scalar {
+    double number;
+    char *string;
+  } scalar;
+
+} JSONNode;
 
 void emitter(char *str) {
   if (emit) {
@@ -229,9 +271,10 @@ void match(Token token) {
 }
 
 int string();
-int array();
+int array(JSONNode *node);
 int number();
-int object();
+int object(JSONNode *node);
+int value(JSONNode *node);
 
 int number() {
   fprintf(verboseChannel, "number\n");
@@ -244,24 +287,40 @@ int number() {
   return 1;
 }
 
-int arrayElement() {
-  fprintf(verboseChannel, "arrayElement\n");
-  return string() || array() || number() || object();
-}
-
-int array() {
+int array(JSONNode *node) {
   fprintf(verboseChannel, "array\n");
   if (!tryMatch(T_LEFT_BRACKET)) {
     return 0;
   }
   emitter("[");
 
-  while (arrayElement()) {
-    if (tryMatch(T_RIGHT_BRACKET)) {
+  node->type = JSON_ARRAY;
+
+  int i = 0;
+
+  JSONNode *keyValuePairs = (JSONNode *)malloc(sizeof(JSONNode));
+  memset(keyValuePairs, 0, sizeof(JSONNode));
+  node->value = keyValuePairs;
+  keyValuePairs->type = JSON_PAIR;
+  keyValuePairs->next = 0;
+
+  while (value(keyValuePairs)) {
+    snprintf(currentString, sizeof(currentString), "%d", i);
+    keyValuePairs->key = (char *)malloc(sizeof(currentString));
+    strcpy(keyValuePairs->key, currentString);
+
+    if (peek() == ']') {
       break;
     } else {
       // more elements follow
       emitter(",");
+      i++;
+      keyValuePairs->next = (JSONNode *)malloc(sizeof(JSONNode));
+      memset(keyValuePairs->next, 0, sizeof(JSONNode));
+
+      keyValuePairs = keyValuePairs->next;
+      keyValuePairs->next = 0;
+      keyValuePairs->type = JSON_PAIR;
     }
   }
 
@@ -286,53 +345,101 @@ int string() {
   return 1;
 }
 
-int key() {
+int key(JSONNode *node) {
   fprintf(verboseChannel, "key\n");
-  return string();
+  int result = string();
+
+  // allocate the key
+  node->key = (char *)malloc(sizeof(currentString));
+  strcpy(node->key, currentString);
+
+  return result;
 }
 
-void value() {
+int value(JSONNode *node) {
   fprintf(verboseChannel, "value\n");
   Token t = nextToken();
+  fprintf(verboseChannel, "got %s\n", toStringToken(t));
+
+  JSONNode *valueNode = (JSONNode *)malloc(sizeof(JSONNode));
+  memset(valueNode, 0, sizeof(JSONNode));
+  node->value = valueNode;
 
   switch (t) {
-  case T_STRING: {
-    emitter("\"");
-    emitter(currentString);
-    emitter("\"");
-    break;
+  case T_QUOTE: {
+    string();
+
+    valueNode->type = JSON_STRING;
+    valueNode->scalar.string = (char *)malloc(sizeof(currentString));
+    strcpy(valueNode->scalar.string, currentString);
+
+    return 1;
   }
   case T_LEFT_BRACKET: {
-    array();
-    break;
+    fprintf(verboseChannel, "array\n");
+    array(valueNode);
+
+    return 1;
   }
   case T_NUMBER: {
+    fprintf(verboseChannel, "number\n");
     emitter(currentString);
-    break;
+
+    valueNode->type = JSON_NUMBER;
+    char *endPtr;
+    valueNode->scalar.number = strtod(currentString, &endPtr);
+
+    return 1;
+  }
+  case T_LEFT_BRACE: {
+    fprintf(verboseChannel, "object\n");
+    object(valueNode);
+
+    return 1;
   }
   default:
+    return 0;
     break;
   }
 }
 
 /** recursively parses a json object from the stream */
-int object() {
+int object(JSONNode *node) {
   fprintf(verboseChannel, "object\n");
   if (!tryMatch(T_LEFT_BRACE)) {
     return 0;
   }
   emitter("{");
 
-  while (key()) {
+  node->type = JSON_OBJECT;
+
+  JSONNode *keyValuePairs = (JSONNode *)malloc(sizeof(JSONNode));
+  memset(keyValuePairs, 0, sizeof(JSONNode));
+  node->value = keyValuePairs;
+  keyValuePairs->next = 0;
+
+  int i = 0;
+  while (key(keyValuePairs)) {
     fprintf(verboseChannel, "matched key\n");
+
+    keyValuePairs->type = JSON_PAIR;
+
     match(T_COLON);
     emitter(":");
-    value();
+    value(keyValuePairs);
 
     if (tryMatch(T_RIGHT_BRACE)) {
+      // no more
       break;
     } else {
+      // more
       emitter(",");
+
+      keyValuePairs->next = (JSONNode *)malloc(sizeof(JSONNode));
+      memset(keyValuePairs->next, 0, sizeof(JSONNode));
+
+      keyValuePairs = keyValuePairs->next;
+      keyValuePairs->next = 0;
     }
   }
 
@@ -341,7 +448,40 @@ int object() {
   return 1;
 }
 
+JSONNode *parseJSON() {
+  JSONNode *root = (JSONNode *)malloc(sizeof(JSONNode));
+  memset(root, 0, sizeof(JSONNode));
+
+  object(root);
+
+  return root;
+}
+
+/** given an object returns the value node of the node at the given key */
+JSONNode *getElementByKey(JSONNode *node, char *str) {
+  if (node->type != JSON_OBJECT) {
+    return 0;
+  }
+
+  // the value node of an OBJECT is a linked list of k/v pairs
+  JSONNode *pair = node->value;
+
+  // now we are iterating over keys/value pairs
+  while (pair != 0) {
+    if (strcmp(pair->key, str) == 0) {
+      // return the value node at that key
+      pair = pair->value;
+      break;
+    }
+
+    pair = pair->next;
+  }
+
+  return pair;
+}
+
 int main(int argc, char **argv) {
+
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "-v") == 0) {
       verbose = 1;
@@ -363,5 +503,40 @@ int main(int argc, char **argv) {
   source = fopen(in, "rb");
   Token next;
 
-  object();
+  JSONNode *root = parseJSON();
+  JSONNode *object = getElementByKey(root, "pairs");
+
+  fprintf(verboseChannel, "type: %s\n", toStringJSONType(object->type));
+
+  JSONNode *pair = object->value;
+
+  while (pair != 0) {
+    // node->value is another k/v pair
+    fprintf(verboseChannel,
+            "type: %s, key: %s, value: { type: %s, value: %f }\n",
+            toStringJSONType(pair->type), pair->key,
+            toStringJSONType(pair->value->type), pair->value->scalar.number);
+
+    fprintf(verboseChannel, "next: %p, value: %p\n", pair->next, pair->value);
+
+    pair = pair->next;
+  }
+
+  JSONNode *pair2 = getElementByKey(root, "scalars");
+
+  fprintf(verboseChannel, "type: %s\n", toStringJSONType(pair2->type));
+
+  // an array is k/v pairs where the keys are numbers
+  JSONNode *pair3 = pair2->value;
+
+  while (pair3 != 0) {
+    fprintf(verboseChannel,
+            "type: %s, key: %s, value: { type: %s, value: %f }\n",
+            toStringJSONType(pair3->type), pair3->key,
+            toStringJSONType(pair3->value->type), pair3->value->scalar.number);
+
+    fprintf(verboseChannel, "next: %p, value: %p\n", pair3->next, pair3->value);
+
+    pair3 = pair3->next;
+  }
 }
