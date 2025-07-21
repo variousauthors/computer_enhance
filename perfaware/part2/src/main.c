@@ -13,7 +13,12 @@ typedef enum Token {
   T_NONE,
   T_LEFT_BRACE,
   T_RIGHT_BRACE,
+  T_LEFT_BRACKET,
+  T_RIGHT_BRACKET,
   T_QUOTE,
+  T_MINUS,
+  T_NUMBER,
+  T_DOT,
   T_STRING,
   T_COLON,
   T_COMMA,
@@ -37,6 +42,12 @@ char *toStringToken(Token token) {
     return "T_COLON";
   case T_COMMA:
     return "T_COMMA";
+  case T_LEFT_BRACKET:
+    return "T_LEFT_BRACKET";
+  case T_RIGHT_BRACKET:
+    return "T_RIGHT_BRACKET";
+  case T_NUMBER:
+    return "T_NUMBER";
   default:
     return "T_ERROR";
   }
@@ -58,6 +69,7 @@ char peek() {
 }
 
 int isString(char c) { return isalnum(c); }
+int isNumber(char c) { return isnumber(c); }
 
 Token toTokenChar(char c) {
   Token result;
@@ -95,6 +107,50 @@ Token nextToken() {
       result = T_COLON;
       break;
     }
+    case '[': {
+      result = T_LEFT_BRACKET;
+      break;
+    }
+    case ']': {
+      result = T_RIGHT_BRACKET;
+      break;
+    }
+    case '0' ... '9':
+    case '-': {
+      fprintf(verboseChannel, "T_NUMBER\n");
+
+      int i = 0;
+
+      if (c == '-') {
+        currentString[i++] = c;
+      } else {
+        ungetc(c, source);
+      }
+
+      while (isNumber(c = getc(source))) {
+        fprintf(verboseChannel, "  -> considering %c\n", c);
+        currentString[i++] = c;
+      }
+
+      if (c == '.') {
+        currentString[i++] = c;
+
+        // after the dot
+        while (isNumber(c = getc(source))) {
+          fprintf(verboseChannel, "  -> considering %c\n", c);
+          currentString[i++] = c;
+        }
+        fprintf(verboseChannel, "  -> ends with %c\n", c);
+      }
+
+      currentString[i] = '\0';
+
+      // there is not terminator to put back, in this case
+      // ungetc(c, source);
+
+      result = T_NUMBER;
+      break;
+    }
     case 'a' ... 'z':
     case 'A' ... 'Z': {
       fprintf(verboseChannel, "T_STRING\n");
@@ -103,14 +159,14 @@ Token nextToken() {
       int i = 0;
       while (isString(c = getc(source))) {
         fprintf(verboseChannel, "  -> considering %c\n", c);
-        currentString[i] = c;
-        i++;
+        currentString[i++] = c;
       }
       fprintf(verboseChannel, "  -> ends with %c\n", c);
 
       currentString[i] = '\0';
 
-      // we have to put the quote back
+      // we have no quote to put back, unlike
+      // in string below...
       // so that ungetc below will put the
       // end of the string back
       // so that when the caller "consumes"
@@ -172,7 +228,50 @@ void match(Token token) {
   }
 }
 
+int string();
+int array();
+int number();
+int object();
+
+int number() {
+  fprintf(verboseChannel, "number\n");
+  if (!tryMatch(T_NUMBER)) {
+    return 0;
+  }
+
+  emitter(currentString);
+
+  return 1;
+}
+
+int arrayElement() {
+  fprintf(verboseChannel, "arrayElement\n");
+  return string() || array() || number() || object();
+}
+
+int array() {
+  fprintf(verboseChannel, "array\n");
+  if (!tryMatch(T_LEFT_BRACKET)) {
+    return 0;
+  }
+  emitter("[");
+
+  while (arrayElement()) {
+    if (tryMatch(T_RIGHT_BRACKET)) {
+      break;
+    } else {
+      // more elements follow
+      emitter(",");
+    }
+  }
+
+  emitter("]");
+
+  return 1;
+}
+
 int string() {
+  fprintf(verboseChannel, "string\n");
   if (!tryMatch(T_QUOTE)) {
     return 0;
   }
@@ -193,35 +292,53 @@ int key() {
 }
 
 void value() {
-  // could be a string or an empty array
+  fprintf(verboseChannel, "value\n");
   Token t = nextToken();
 
   switch (t) {
-  case T_QUOTE: {
-    string();
+  case T_STRING: {
+    emitter("\"");
+    emitter(currentString);
+    emitter("\"");
     break;
   }
-
+  case T_LEFT_BRACKET: {
+    array();
+    break;
+  }
+  case T_NUMBER: {
+    emitter(currentString);
+    break;
+  }
   default:
     break;
   }
 }
 
 /** recursively parses a json object from the stream */
-void object() {
+int object() {
   fprintf(verboseChannel, "object\n");
-  match(T_LEFT_BRACE);
+  if (!tryMatch(T_LEFT_BRACE)) {
+    return 0;
+  }
   emitter("{");
 
-  if (key()) {
+  while (key()) {
     fprintf(verboseChannel, "matched key\n");
     match(T_COLON);
     emitter(":");
     value();
+
+    if (tryMatch(T_RIGHT_BRACE)) {
+      break;
+    } else {
+      emitter(",");
+    }
   }
 
-  match(T_RIGHT_BRACE);
   emitter("}");
+
+  return 1;
 }
 
 int main(int argc, char **argv) {
