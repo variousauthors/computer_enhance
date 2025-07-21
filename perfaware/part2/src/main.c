@@ -1,82 +1,250 @@
-#include "haversine_formula.c"
-#include "haversine_formula.h"
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define EARTH_RADIUS 6317
+int emit;
+int verbose;
+FILE *verboseChannel = 0;
 
-int cluster = 0;
+char currentString[1024];
 
-int main(int argc, char *argv[]) {
-  char *endptr;
-  char *countString = argv[argc - 1];
+typedef enum Token {
+  T_NONE,
+  T_LEFT_BRACE,
+  T_RIGHT_BRACE,
+  T_QUOTE,
+  T_STRING,
+  T_COLON,
+  T_COMMA,
+  T_EOF,
+  T_ERROR,
+} Token;
 
-  long count = strtol(countString, &endptr, 10);
+char *toStringToken(Token token) {
+  switch (token) {
+  case T_NONE:
+    return "T_NONE";
+  case T_LEFT_BRACE:
+    return "T_LEFT_BRACE";
+  case T_RIGHT_BRACE:
+    return "T_RIGHT_BRACE";
+  case T_QUOTE:
+    return "T_QUOTE";
+  case T_STRING:
+    return "T_STRING";
+  case T_COLON:
+    return "T_COLON";
+  case T_COMMA:
+    return "T_COMMA";
+  default:
+    return "T_ERROR";
+  }
+}
 
-  if (*endptr != '\0') {
-    fprintf(stderr, "Invalid characters after number: %s\n", endptr);
+void emitter(char *str) {
+  if (emit) {
+    printf("%s", str);
+  }
+}
+
+FILE *source;
+
+char peek() {
+  char c = getc(source);
+  ungetc(c, source);
+
+  return c;
+}
+
+int isString(char c) { return isalnum(c); }
+
+Token toTokenChar(char c) {
+  Token result;
+
+  return result;
+}
+
+/* advances through the stream until we hit a token */
+Token nextToken() {
+  fprintf(verboseChannel, "nextToken\n");
+  char c;
+  Token result = T_ERROR;
+
+  while ((c = getc(source)) != EOF) {
+    fprintf(verboseChannel, "considering %c\n", c);
+
+    if (c == ' ' || c == '\n') {
+      continue;
+    }
+
+    switch (c) {
+    case '{': {
+      result = T_LEFT_BRACE;
+      break;
+    }
+    case '}': {
+      result = T_RIGHT_BRACE;
+      break;
+    }
+    case '"': {
+      result = T_QUOTE;
+      break;
+    }
+    case ':': {
+      result = T_COLON;
+      break;
+    }
+    case 'a' ... 'z':
+    case 'A' ... 'Z': {
+      fprintf(verboseChannel, "T_STRING\n");
+      // put the char back to simplify the loop
+      ungetc(c, source);
+      int i = 0;
+      while (isString(c = getc(source))) {
+        fprintf(verboseChannel, "  -> considering %c\n", c);
+        currentString[i] = c;
+        i++;
+      }
+      fprintf(verboseChannel, "  -> ends with %c\n", c);
+
+      currentString[i] = '\0';
+
+      // we have to put the quote back
+      // so that ungetc below will put the
+      // end of the string back
+      // so that when the caller "consumes"
+      // they will be consuming the end of the string
+      ungetc(c, source);
+
+      result = T_STRING;
+      break;
+    }
+    default: {
+      result = T_ERROR;
+      break;
+    }
+    }
+
+    if (result != T_ERROR) {
+      // we always unget because it is the job of "consume" to consume the
+      // tokens
+      fprintf(verboseChannel, "  -> putting %c back\n", c);
+      ungetc(c, source);
+
+      break;
+    }
   }
 
-  char *seedString = argv[argc - 2];
-  endptr = 0;
+  return result;
+}
 
-  long seed = strtol(seedString, &endptr, 10);
+void consume() { getc(source); }
 
-  if (*endptr != '\0') {
-    fprintf(stderr, "Invalid characters after number: %s\n", endptr);
+int tryMatch(Token token) {
+  Token t = nextToken();
+  fprintf(verboseChannel, "tryMatch -> token: %s, t: %s\n",
+          toStringToken(token), toStringToken(t));
+
+  if (t == token) {
+    // if it matched we do consume the token
+    consume();
+    return 1;
+  } else {
+    fprintf(verboseChannel, "expected %s but got %s\n", toStringToken(token),
+            toStringToken(t));
+    return 0;
+  }
+}
+
+void match(Token token) {
+  Token t = nextToken();
+  fprintf(verboseChannel, "match -> token: %s, t: %s\n", toStringToken(token),
+          toStringToken(t));
+
+  if (t == token) {
+    // if it matched we do consume the token
+    consume();
+  } else {
+    fprintf(stderr, "expected %s but got %s\n", toStringToken(token),
+            toStringToken(t));
+    exit(1);
+  }
+}
+
+int string() {
+  if (!tryMatch(T_QUOTE)) {
+    return 0;
+  }
+  emitter("\"");
+
+  match(T_STRING);
+  emitter(currentString);
+
+  match(T_QUOTE);
+  emitter("\"");
+
+  return 1;
+}
+
+int key() {
+  fprintf(verboseChannel, "key\n");
+  return string();
+}
+
+void value() {
+  // could be a string or an empty array
+  Token t = nextToken();
+
+  switch (t) {
+  case T_QUOTE: {
+    string();
+    break;
   }
 
-  // do the args
+  default:
+    break;
+  }
+}
+
+/** recursively parses a json object from the stream */
+void object() {
+  fprintf(verboseChannel, "object\n");
+  match(T_LEFT_BRACE);
+  emitter("{");
+
+  if (key()) {
+    fprintf(verboseChannel, "matched key\n");
+    match(T_COLON);
+    emitter(":");
+    value();
+  }
+
+  match(T_RIGHT_BRACE);
+  emitter("}");
+}
+
+int main(int argc, char **argv) {
   for (int i = 1; i < argc; i++) {
-    if (strcmp(argv[i], "uniform") == 0) {
-      cluster = 0;
+    if (strcmp(argv[i], "-v") == 0) {
+      verbose = 1;
     }
 
-    if (strcmp(argv[i], "cluster") == 0) {
-      cluster = 1;
+    if (strcmp(argv[i], "-emit") == 0) {
+      emit = 1;
     }
   }
 
-  FILE *json = fopen("out.json", "w");
-  FILE *answers = fopen("out.f64", "wb");
-
-  fprintf(stderr, "seed: %ld, count: %ld, cluster: %d\n", seed, count, cluster);
-
-  srand(seed);
-
-  fprintf(json, "{\n");
-  fprintf(json, "  \"pairs\": [\n");
-
-  double avg = 0;
-
-  // store the count in the f64 file
-  fwrite(&count, sizeof(count), 1, answers);
-
-  for (int i = 0; i < count; i++) {
-    float x0 = (float)rand() / (float)(RAND_MAX / 360) - 180;
-    float y0 = (float)rand() / (float)(RAND_MAX / 360) - 180;
-    float x1 = (float)rand() / (float)(RAND_MAX / 180) - 90;
-    float y1 = (float)rand() / (float)(RAND_MAX / 180) - 90;
-
-    double h = ReferenceHaversine(x0, y0, x1, y1, EARTH_RADIUS);
-    avg += h;
-
-    fprintf(stderr, "%f, ", h);
-    fwrite(&h, sizeof(h), 1, answers);
-
-    fprintf(json, "    { \"x0\": %f, \"y0\": %f, \"x1\": %f, \"y1\": %f }%s\n",
-            x0, y0, x1, y1, i < count - 1 ? "," : "");
+  if (verbose) {
+    verboseChannel = stderr;
+  } else {
+    verboseChannel = fopen("/dev/null", "w");
   }
 
-  avg /= count;
-  fwrite(&avg, sizeof(avg), 1, answers);
+  char *answers = argv[argc - 1];
+  char *in = argv[argc - 2];
+  source = fopen(in, "rb");
+  Token next;
 
-  fprintf(json, "  ]\n");
-  fprintf(json, "}\n");
-
-  fprintf(stderr, "Method: %s\n", cluster ? "cluster" : "uniform");
-  fprintf(stderr, "Random seed: %ld\n", seed);
-  fprintf(stderr, "Pair count: %ld\n", count);
-  fprintf(stderr, "Expected sum: %f\n", avg);
+  object();
 }
