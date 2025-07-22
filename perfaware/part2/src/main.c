@@ -1,8 +1,12 @@
+#include "haversine_formula.c"
+#include "haversine_formula.h"
 #include <alloca.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define EARTH_RADIUS 6317
 
 int emit;
 int verbose;
@@ -300,11 +304,17 @@ int array(JSONNode *node) {
 
   JSONNode *keyValuePairs = (JSONNode *)malloc(sizeof(JSONNode));
   memset(keyValuePairs, 0, sizeof(JSONNode));
-  node->value = keyValuePairs;
   keyValuePairs->type = JSON_PAIR;
   keyValuePairs->next = 0;
 
+  JSONNode *firstElement = keyValuePairs;
+
   while (value(keyValuePairs)) {
+    // we only assigne keyValuePairs to node->value
+    // if there are elements. That way an empty array
+    // has node->value == null, which we can test
+    node->value = firstElement;
+
     snprintf(currentString, sizeof(currentString), "%d", i);
     keyValuePairs->key = (char *)malloc(sizeof(currentString));
     strcpy(keyValuePairs->key, currentString);
@@ -460,8 +470,8 @@ JSONNode *parseJSON() {
 }
 
 /** given an object returns the value node of the node at the given key */
-JSONNode *getElementByKey(JSONNode *node, char *str) {
-  if (node->type != JSON_OBJECT) {
+JSONNode *getValueByKey(JSONNode *node, char *str) {
+  if (node->type != JSON_OBJECT && node->type != JSON_ARRAY) {
     return 0;
   }
 
@@ -533,8 +543,46 @@ int main(int argc, char **argv) {
 
   JSONNode *root = parseJSON();
 
-  printObject(getElementByKey(root, "letters"));
-  printObject(getElementByKey(root, "strings"));
-  printObject(getElementByKey(root, "pairs"));
-  printObject(getElementByKey(root, "numbers"));
+  fprintf(verboseChannel, "hello\n");
+  // this is the "value node"
+  JSONNode *pairs = getValueByKey(root, "pairs");
+
+  fprintf(verboseChannel, "%s\n", toStringJSONType(pairs->type));
+
+  JSONNode *element = pairs->value;
+
+  if (element == 0) {
+    fprintf(verboseChannel, "empty\n");
+  } else {
+    fprintf(verboseChannel, "values\n");
+    double avg = 0;
+    long count = 0;
+
+    do {
+      // each element is a k/v pair like { "0": { "x0": 1, "x1": 2, ... } }
+      // so we getValueByKey of emelement->value
+      fprintf(verboseChannel, "type: %s, key: %s \n",
+              toStringJSONType(element->type), element->key);
+
+      float x0 = getValueByKey(element->value, "x0")->scalar.number;
+      float x1 = getValueByKey(element->value, "x1")->scalar.number;
+      float y0 = getValueByKey(element->value, "y0")->scalar.number;
+      float y1 = getValueByKey(element->value, "y1")->scalar.number;
+
+      fprintf(verboseChannel,
+              "    { \"x0\": %f, \"y0\": %f, \"x1\": %f, \"y1\": %f }%s\n", x0,
+              y0, x1, y1, element->next ? "," : "");
+
+      double h = ReferenceHaversine(x0, y0, x1, y1, EARTH_RADIUS);
+      avg += h;
+      count++;
+
+    } while ((element = element->next));
+
+    avg /= count;
+
+    fprintf(stderr, "Input size: %d\n", 123);
+    fprintf(stderr, "Pair count: %ld\n", count);
+    fprintf(stderr, "Haversone sum: %f\n", avg);
+  }
 }

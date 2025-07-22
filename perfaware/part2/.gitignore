@@ -1,6 +1,7 @@
 main
 out
-out.json
-out.f64
+*.json
+*.f64
 test
 test.asm
+havrsine_generator

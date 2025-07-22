@@ -27,6 +27,10 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Invalid characters after number: %s\n", endptr);
   }
 
+  char *filename = "out";
+
+  fprintf(stderr, "about to do args\n");
+
   // do the args
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "uniform") == 0) {
@@ -36,10 +40,20 @@ int main(int argc, char *argv[]) {
     if (strcmp(argv[i], "cluster") == 0) {
       cluster = 1;
     }
+
+    if (strcmp(argv[i], "-out") == 0) {
+      filename = argv[i + 1];
+    }
   }
 
-  FILE *json = fopen("out.json", "w");
-  FILE *answers = fopen("out.f64", "wb");
+  char *jsonFileName = malloc(strlen(filename) + 5);
+  sprintf(jsonFileName, "%s.json", filename);
+
+  char *f64FileName = malloc(strlen(filename) + 5);
+  sprintf(f64FileName, "%s.f64", filename);
+
+  FILE *json = fopen(jsonFileName, "w");
+  FILE *answers = fopen(f64FileName, "wb");
 
   srand(seed);
 
