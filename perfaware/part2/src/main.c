@@ -76,8 +76,6 @@ void sumHaversine(JSONNode *pairs) {
 }
 
 int main(int argc, char **argv) {
-  beginProfiler();
-
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "-v") == 0) {
       verbose = 1;
@@ -103,6 +101,8 @@ int main(int argc, char **argv) {
     perfChannel = fopen("/dev/null", "w");
   }
 
+  beginProfiler();
+
   if (perf) {
     perfChannel = stderr;
   } else {
@@ -123,4 +123,6 @@ int main(int argc, char **argv) {
   fprintf(verboseChannel, "%s\n", toStringJSONType(pairs->type));
 
   sumHaversine(pairs);
+
+  endAndPrintProfiler();
 }
