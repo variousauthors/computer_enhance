@@ -217,6 +217,8 @@ int object(JSONNode *node) {
 }
 
 JSONNode *parseJSON() {
+  TimeFunction;
+
   JSONNode *root = (JSONNode *)malloc(sizeof(JSONNode));
   memset(root, 0, sizeof(JSONNode));
 

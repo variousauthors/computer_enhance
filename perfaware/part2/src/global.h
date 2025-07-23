@@ -10,4 +10,8 @@ int emit;
 int verbose;
 int perf;
 
+#define TimeFunction 1
+
+void beginProfiler();
+
 #endif

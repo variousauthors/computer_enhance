@@ -34,62 +34,8 @@ Token toTokenChar(char c) {
   return result;
 }
 
-int main(int argc, char **argv) {
-  uint64_t Prof_Begin = 0;
-  uint64_t Prof_Read = 0;
-  uint64_t Prof_MiscSetup = 0;
-  uint64_t Prof_Parse = 0;
-  uint64_t Prof_Sum = 0;
-  uint64_t Prof_MiscOutput = 0;
-  uint64_t Prof_End = 0;
-
-  Prof_Begin = ReadCPUTimer();
-
-  for (int i = 1; i < argc; i++) {
-    if (strcmp(argv[i], "-v") == 0) {
-      verbose = 1;
-    }
-
-    if (strcmp(argv[i], "-perf") == 0) {
-      perf = 1;
-    }
-
-    if (strcmp(argv[i], "-emit") == 0) {
-      emit = 1;
-    }
-  }
-
-  if (verbose) {
-    verboseChannel = stderr;
-    perfChannel = fopen("/dev/null", "w");
-  } else if (perf) {
-    perfChannel = stderr;
-    verboseChannel = fopen("/dev/null", "w");
-  } else {
-    verboseChannel = fopen("/dev/null", "w");
-    perfChannel = fopen("/dev/null", "w");
-  }
-
-  if (perf) {
-    perfChannel = stderr;
-  } else {
-    perfChannel = fopen("/dev/null", "w");
-  }
-
-  char *answers = argv[argc - 1];
-  char *in = argv[argc - 2];
-  source = fopen(in, "rb");
-  Token next;
-
-  Prof_Parse = ReadCPUTimer();
-  JSONNode *root = parseJSON();
-
-  fprintf(verboseChannel, "hello\n");
-  // this is the "value node"
-  Prof_Sum = ReadCPUTimer();
-  JSONNode *pairs = getValueByKey(root, "pairs");
-
-  fprintf(verboseChannel, "%s\n", toStringJSONType(pairs->type));
+void sumHaversine(JSONNode *pairs) {
+  TimeFunction;
 
   JSONNode *element = pairs->value;
 
@@ -127,21 +73,54 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Pair count: %ld\n", count);
     fprintf(stderr, "Haversine sum: %f\n", avg);
   }
+}
 
-  Prof_End = ReadCPUTimer();
+int main(int argc, char **argv) {
+  beginProfiler();
 
-  uint64_t TotalCPUElapsed = Prof_End - Prof_Begin;
+  for (int i = 1; i < argc; i++) {
+    if (strcmp(argv[i], "-v") == 0) {
+      verbose = 1;
+    }
 
-  uint64_t CPUFreq = EstimateCPUTimerFreq();
-  if (CPUFreq) {
-    fprintf(perfChannel, "\nTotal time: %0.4fms (CPU freq %llu)\n",
-            1000.0 * (double)TotalCPUElapsed / (double)CPUFreq, CPUFreq);
+    if (strcmp(argv[i], "-perf") == 0) {
+      perf = 1;
+    }
+
+    if (strcmp(argv[i], "-emit") == 0) {
+      emit = 1;
+    }
   }
 
-  PrintTimeElapsed("Startup", TotalCPUElapsed, Prof_Begin, Prof_Parse);
-  // PrintTimeElapsed("Read", TotalCPUElapsed, Prof_Read, Prof_MiscSetup);
-  // PrintTimeElapsed("MiscSetup", TotalCPUElapsed, Prof_MiscSetup, Prof_Parse);
-  PrintTimeElapsed("Parse", TotalCPUElapsed, Prof_Parse, Prof_Sum);
-  PrintTimeElapsed("Sum", TotalCPUElapsed, Prof_Sum, Prof_End);
-  // PrintTimeElapsed("MiscOutput", TotalCPUElapsed, Prof_MiscOutput, Prof_End);
+  if (verbose) {
+    verboseChannel = stderr;
+    perfChannel = fopen("/dev/null", "w");
+  } else if (perf) {
+    perfChannel = stderr;
+    verboseChannel = fopen("/dev/null", "w");
+  } else {
+    verboseChannel = fopen("/dev/null", "w");
+    perfChannel = fopen("/dev/null", "w");
+  }
+
+  if (perf) {
+    perfChannel = stderr;
+  } else {
+    perfChannel = fopen("/dev/null", "w");
+  }
+
+  char *answers = argv[argc - 1];
+  char *in = argv[argc - 2];
+  source = fopen(in, "rb");
+  Token next;
+
+  JSONNode *root = parseJSON();
+
+  fprintf(verboseChannel, "hello\n");
+  // this is the "value node"
+  JSONNode *pairs = getValueByKey(root, "pairs");
+
+  fprintf(verboseChannel, "%s\n", toStringJSONType(pairs->type));
+
+  sumHaversine(pairs);
 }

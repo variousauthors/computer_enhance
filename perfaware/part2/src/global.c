@@ -2,3 +2,5 @@
 
 FILE *verboseChannel = 0;
 FILE *perfChannel = 0;
+
+void beginProfiler() {}
