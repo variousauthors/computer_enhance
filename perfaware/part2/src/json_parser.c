@@ -167,16 +167,34 @@ int value(JSONNode *node) {
     fprintf(verboseChannel, "no value\n");
     // if we didn't get one of these we should put it back
     return 0;
-    break;
   }
+}
+
+int silliness() {
+  ProfilerMagic;
+  int i;
+  for (i = 0; i < 100000000; i++) {
+  }
+
+  return i;
+}
+
+int nonsense() {
+  ProfilerMagic;
+  int i;
+  for (i = 0; i < 100000000; i++) {
+  }
+
+  silliness();
+
+  return i;
 }
 
 /** recursively parses a json object from the stream */
 int object(JSONNode *node) {
-  ProfilerStart("1");
+  ProfilerMagic;
   fprintf(verboseChannel, "object\n");
   if (!tryMatch(T_LEFT_BRACE)) {
-    ProfilerStop("1");
     return 0;
   }
   emitter("{");
@@ -214,18 +232,16 @@ int object(JSONNode *node) {
   }
 
   emitter("}");
-  ProfilerStop("1");
 
   return 1;
 }
 
 JSONNode *parseJSON() {
-  ProfilerStart("1");
+  ProfilerMagic;
   JSONNode *root = (JSONNode *)malloc(sizeof(JSONNode));
   memset(root, 0, sizeof(JSONNode));
 
   object(root);
-  ProfilerStop("1");
 
   return root;
 }

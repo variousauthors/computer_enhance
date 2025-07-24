@@ -15,6 +15,7 @@ typedef struct ProfilerTimer {
   char label[19];
   int active;
   int hits;
+  unsigned long h;
   uint64_t begin;
   uint64_t elapsed;
   uint64_t elapsedNoChildren;
@@ -26,10 +27,17 @@ typedef struct ProfilerTimer {
 #define ProfilerStart(id) (startProfilerTimer(__func__, id))
 #define ProfilerStop(id) (stopProfilerTimer(__func__, id))
 
+// declares a variable with __attribute__(cleanup) so that
+// it will call a destructor when it goes out of scope
+#define ProfilerMagic                                                          \
+  __attribute__((cleanup(stop))) unsigned long parentTimer = start(__func__)
+
 #define MAX_PROFILE_TIMERS 4096
 
 ProfilerTimer profileTimers[MAX_PROFILE_TIMERS];
 
+unsigned long start(const char *name);
+void stop(unsigned long *parentHash);
 void stopProfilerTimer(const char *name, const char *id);
 void startProfilerTimer(const char *name, const char *id);
 void beginProfiler();
