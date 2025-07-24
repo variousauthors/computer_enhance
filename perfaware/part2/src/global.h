@@ -11,16 +11,27 @@ int emit;
 int verbose;
 int perf;
 
-typedef struct ProfilerTiming {
-  char functionName[64];
+typedef struct ProfilerTimer {
+  char label[19];
+  int active;
+  int hits;
   uint64_t begin;
+  uint64_t elapsed;
+  uint64_t elapsedNoChildren;
 
-} ProfilerTiming;
+  struct ProfilerTimer *parent;
 
-#define MAX_PROFILE_TIMERS 10
+} ProfilerTimer;
 
-ProfilerTiming profileTimers[MAX_PROFILE_TIMERS];
+#define ProfilerStart(id) (startProfilerTimer(__func__, id))
+#define ProfilerStop(id) (stopProfilerTimer(__func__, id))
 
+#define MAX_PROFILE_TIMERS 4096
+
+ProfilerTimer profileTimers[MAX_PROFILE_TIMERS];
+
+void stopProfilerTimer(const char *name, const char *id);
+void startProfilerTimer(const char *name, const char *id);
 void beginProfiler();
 void endAndPrintProfiler();
 

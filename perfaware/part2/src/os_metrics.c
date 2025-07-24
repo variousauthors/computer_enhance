@@ -30,10 +30,14 @@ inline uint64_t ReadCPUTimer(void) {
 }
 
 void PrintTimeElapsed(char const *Label, uint64_t TotalTSCElapsed,
-                      uint64_t Begin, uint64_t End) {
-  uint64_t Elapsed = End - Begin;
-  double Percent = 100.0 * ((double)Elapsed / (double)TotalTSCElapsed);
-  fprintf(perfChannel, "  %s: %llu (%.2f%%)\n", Label, Elapsed, Percent);
+                      uint64_t Elapsed, uint64_t ElapsedNoChildren) {
+  double PercentWithChildren =
+      100.0 * ((double)Elapsed / (double)TotalTSCElapsed);
+  double Percent =
+      100.0 * ((double)ElapsedNoChildren / (double)TotalTSCElapsed);
+
+  fprintf(perfChannel, "%-15s %-12llu (%6.2f%%) (w/ children: %6.2f%%)\n",
+          Label, Elapsed, Percent, PercentWithChildren);
 }
 
 uint64_t EstimateCPUTimerFreq(void) {

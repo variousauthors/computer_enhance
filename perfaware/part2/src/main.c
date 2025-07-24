@@ -35,8 +35,7 @@ Token toTokenChar(char c) {
 }
 
 void sumHaversine(JSONNode *pairs) {
-  TimeFunction;
-
+  ProfilerStart("1");
   JSONNode *element = pairs->value;
 
   if (element == 0) {
@@ -73,9 +72,12 @@ void sumHaversine(JSONNode *pairs) {
     fprintf(stderr, "Pair count: %ld\n", count);
     fprintf(stderr, "Haversine sum: %f\n", avg);
   }
+
+  ProfilerStop("1");
 }
 
 int main(int argc, char **argv) {
+
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "-v") == 0) {
       verbose = 1;
@@ -102,6 +104,7 @@ int main(int argc, char **argv) {
   }
 
   beginProfiler();
+  ProfilerStart("1");
 
   if (perf) {
     perfChannel = stderr;
@@ -124,5 +127,6 @@ int main(int argc, char **argv) {
 
   sumHaversine(pairs);
 
+  ProfilerStop("1");
   endAndPrintProfiler();
 }

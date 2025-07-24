@@ -217,12 +217,12 @@ int object(JSONNode *node) {
 }
 
 JSONNode *parseJSON() {
-  TimeFunction;
-
+  ProfilerStart("1");
   JSONNode *root = (JSONNode *)malloc(sizeof(JSONNode));
   memset(root, 0, sizeof(JSONNode));
 
   object(root);
+  ProfilerStop("1");
 
   return root;
 }
