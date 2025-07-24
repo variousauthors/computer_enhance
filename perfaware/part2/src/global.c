@@ -43,13 +43,18 @@ void startProfilerTimer(const char *name, const char *id) {
 
   if (currentTimer) {
     /* when we start a new timer, we have to pause the parent */
-    timer->parent = currentTimer;
-    uint64_t elapsed = (ReadCPUTimer() - timer->parent->begin);
-    timer->parent->elapsed += elapsed;
-    timer->parent->elapsedNoChildren += elapsed;
+    uint64_t elapsed = (ReadCPUTimer() - currentTimer->begin);
+    currentTimer->elapsed += elapsed;
+    currentTimer->elapsedNoChildren += elapsed;
   }
 
-  currentTimer = timer;
+  // however, if the parent identity has not changed
+  // we don't overwrite, ie if we have A -> B -> B
+  // we don't want to lose track of A
+  if (currentTimer != timer) {
+    timer->parent = currentTimer;
+    currentTimer = timer;
+  }
 
   strcpy(timer->label, name);
 

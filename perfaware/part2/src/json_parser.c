@@ -176,6 +176,7 @@ int object(JSONNode *node) {
   ProfilerStart("1");
   fprintf(verboseChannel, "object\n");
   if (!tryMatch(T_LEFT_BRACE)) {
+    ProfilerStop("1");
     return 0;
   }
   emitter("{");
