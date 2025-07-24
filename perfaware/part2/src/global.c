@@ -41,16 +41,22 @@ void startProfilerTimer(const char *name, const char *id) {
   unsigned long h = hash(name, id);
   ProfilerTimer *timer = &profileTimers[h];
 
+  if (currentTimer) {
+    /* when we start a new timer, we have to pause the parent */
+    timer->parent = currentTimer;
+    uint64_t elapsed = (ReadCPUTimer() - timer->parent->begin);
+    timer->parent->elapsed += elapsed;
+    timer->parent->elapsedNoChildren += elapsed;
+  }
+
+  currentTimer = timer;
+
   strcpy(timer->label, name);
 
   timer->active = 1;
   timer->hits = 0;
   uint64_t begin = ReadCPUTimer();
   timer->begin = begin;
-
-  // save the global timer
-  timer->parent = currentTimer;
-  currentTimer = timer;
 }
 
 void stopProfilerTimer(const char *name, const char *id) {
@@ -68,11 +74,16 @@ void stopProfilerTimer(const char *name, const char *id) {
   timer->elapsed += elapsed;
   timer->elapsedNoChildren += elapsed;
 
-  currentTimer = timer->parent;
-
   if (timer->parent) {
-    // we subtract off the child time from the elapsed no childen
-    timer->parent->elapsedNoChildren -= elapsed;
+    // we have to unpause the parent timer
+    currentTimer = timer->parent;
+    // it starts counting it's own no children time
+    currentTimer->begin = ReadCPUTimer();
+
+    if (timer->parent != timer) {
+      // it adds in the time from this (child) timer
+      currentTimer->elapsed += elapsed;
+    }
   }
 }
 
@@ -93,6 +104,8 @@ void endAndPrintProfiler() {
   fprintf(perfChannel, "\nprofiler timers:\n");
 
   totalElapsed = profilerEnd - profilerStart;
+
+  fprintf(perfChannel, "total ticks: %lld", totalElapsed);
 
   if (cpuFreq) {
     fprintf(perfChannel, "  Total time: %0.4fms (CPU freq %llu)\n\n",

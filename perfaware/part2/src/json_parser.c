@@ -173,6 +173,7 @@ int value(JSONNode *node) {
 
 /** recursively parses a json object from the stream */
 int object(JSONNode *node) {
+  ProfilerStart("1");
   fprintf(verboseChannel, "object\n");
   if (!tryMatch(T_LEFT_BRACE)) {
     return 0;
@@ -212,6 +213,7 @@ int object(JSONNode *node) {
   }
 
   emitter("}");
+  ProfilerStop("1");
 
   return 1;
 }
