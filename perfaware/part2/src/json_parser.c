@@ -97,6 +97,7 @@ int array(JSONNode *node) {
 }
 
 int string() {
+  ProfilerMagic;
   fprintf(verboseChannel, "string\n");
   if (!tryMatch(T_QUOTE)) {
     return 0;
@@ -113,6 +114,7 @@ int string() {
 }
 
 int key(JSONNode *node) {
+  ProfilerMagic;
   fprintf(verboseChannel, "key\n");
   int result = string();
 
@@ -124,6 +126,7 @@ int key(JSONNode *node) {
 }
 
 int value(JSONNode *node) {
+  ProfilerMagic;
   fprintf(verboseChannel, "value\n");
   Token t = nextToken();
 

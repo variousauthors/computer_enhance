@@ -36,7 +36,7 @@ void PrintTimeElapsed(char const *Label, uint64_t TotalTSCElapsed,
   double Percent =
       100.0 * ((double)ElapsedNoChildren / (double)TotalTSCElapsed);
 
-  fprintf(perfChannel, "%-15s %-12llu (%6.2f%%) (w/ children: %6.2f%%)\n",
+  fprintf(perfChannel, "%-15s %-16llu (%6.2f%%) (w/ children: %6.2f%%)\n",
           Label, Elapsed, Percent, PercentWithChildren);
 }
 

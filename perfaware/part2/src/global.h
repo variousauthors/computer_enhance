@@ -19,6 +19,7 @@ typedef struct ProfilerTimer {
   uint64_t begin;
   uint64_t elapsed;
   uint64_t elapsedNoChildren;
+  uint64_t accumulator;
 
   struct ProfilerTimer *parent;
 

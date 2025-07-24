@@ -36,6 +36,8 @@ unsigned long hash(const char *str1, const char *str2) {
 ProfilerTimer *currentTimer = &profileTimers[0];
 
 unsigned long start(const char *name) {
+  uint64_t now = ReadCPUTimer();
+
   unsigned long parentHash = currentTimer->h;
   unsigned long h = hash(name, "1");
 
@@ -45,7 +47,7 @@ unsigned long start(const char *name) {
   timer->active = 1;
   timer->hits = 0;
   timer->h = h;
-  uint64_t begin = ReadCPUTimer();
+  uint64_t begin = now;
   timer->begin = begin;
 
   // fprintf(stderr, "start: %s, parent: %ld, h: %ld\n", timer->label,
@@ -53,8 +55,9 @@ unsigned long start(const char *name) {
   //         h);
 
   /* when we start a new timer, we have to pause the parent */
-  uint64_t elapsed = (ReadCPUTimer() - currentTimer->begin);
+  uint64_t elapsed = (now - currentTimer->begin);
   currentTimer->elapsed += elapsed;
+  currentTimer->accumulator += elapsed;
   currentTimer->elapsedNoChildren += elapsed;
 
   // fprintf(stderr, "  start: adding to %s: %lld\n", currentTimer->label,
@@ -67,6 +70,7 @@ unsigned long start(const char *name) {
 }
 
 void stop(unsigned long *hashes) {
+  uint64_t now = ReadCPUTimer();
   unsigned long parentHash = *hashes >> 12;
   unsigned long h = *hashes & 0xFFF;
 
@@ -83,20 +87,23 @@ void stop(unsigned long *hashes) {
   }
 
   timer->active = 0;
-  uint64_t end = ReadCPUTimer();
+  uint64_t end = now;
   uint64_t elapsed = (end - timer->begin);
+  timer->accumulator += elapsed;
   timer->elapsed += elapsed;
   timer->elapsedNoChildren += elapsed;
 
   // fprintf(stderr, "  stop: adding to %s: %lld\n", timer->label, elapsed);
 
-  parentTimer->begin = ReadCPUTimer();
+  parentTimer->begin = now;
 
   if (parentTimer != timer) {
     // it adds in the time from this (child) timer
-    parentTimer->elapsed += timer->elapsed;
+    parentTimer->elapsed += timer->accumulator;
+    parentTimer->accumulator += timer->accumulator;
     // fprintf(stderr, "  stop: adding to %s: %lld\n", parentTimer->label,
-    //         timer->elapsed);
+    //         timer->accumulator);
+    timer->accumulator = 0;
   }
 
   currentTimer = parentTimer;
