@@ -14,15 +14,12 @@ int perf;
 typedef struct ProfilerTimer {
   char label[19];
   int active;
-  int hits;
   unsigned long h;
   uint64_t begin;
   uint64_t initTime;
 
   uint64_t total;
   uint64_t exclusive;
-
-  struct ProfilerTimer *parent;
 
 } ProfilerTimer;
 
