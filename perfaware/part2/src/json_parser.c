@@ -38,7 +38,6 @@ int object(JSONNode *node);
 int value(JSONNode *node);
 
 int number() {
-  ProfilerMagic;
   fprintf(verboseChannel, "number\n");
   if (!tryMatch(T_NUMBER)) {
     return 0;
@@ -50,7 +49,6 @@ int number() {
 }
 
 int array(JSONNode *node) {
-  ProfilerMagic;
   fprintf(verboseChannel, "array\n");
   if (!tryMatch(T_LEFT_BRACKET)) {
     return 0;
@@ -99,7 +97,6 @@ int array(JSONNode *node) {
 }
 
 int string() {
-  ProfilerMagic;
   fprintf(verboseChannel, "string\n");
   if (!tryMatch(T_QUOTE)) {
     return 0;
@@ -116,7 +113,6 @@ int string() {
 }
 
 int key(JSONNode *node) {
-  ProfilerMagic;
   fprintf(verboseChannel, "key\n");
   int result = string();
 
@@ -128,7 +124,6 @@ int key(JSONNode *node) {
 }
 
 int value(JSONNode *node) {
-  ProfilerMagic;
   fprintf(verboseChannel, "value\n");
   Token t = nextToken();
 
@@ -177,7 +172,6 @@ int value(JSONNode *node) {
 
 /** recursively parses a json object from the stream */
 int object(JSONNode *node) {
-  ProfilerMagic;
   fprintf(verboseChannel, "object\n");
   if (!tryMatch(T_LEFT_BRACE)) {
     return 0;

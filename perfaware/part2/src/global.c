@@ -57,6 +57,7 @@ unsigned long start(const char *name) {
 
   // start this timer
   timer->active++;
+  timer->hits++;
   timer->begin = now;
 
   currentTimer = timer;
@@ -108,6 +109,7 @@ void beginProfiler() {
 
   strcpy(timer->label, "main");
   timer->active++;
+  timer->hits++;
   timer->h = 0;
   timer->begin = now;
   timer->initTime = now;
@@ -125,17 +127,14 @@ void endAndPrintProfiler() {
   timer->active--;
   timer->total = now - timer->initTime;
 
-  fprintf(perfChannel, "\nprofiler timers:\n");
-
   uint64_t totalElapsed = now - profilerStartTime;
 
-  fprintf(perfChannel, "total ticks: %lld", totalElapsed);
-
   if (cpuFreq) {
-    fprintf(perfChannel, "  Total time: %0.4fms (CPU freq %llu)\n\n",
+    fprintf(perfChannel, "\nTotal time: %0.4fms (CPU freq %llu)\n\n",
             1000.0 * (double)totalElapsed / (double)cpuFreq, cpuFreq);
   }
 
+#ifdef PROFILER
   int count = 0;
   for (int i = 0; i < MAX_PROFILE_TIMERS; i++) {
     ProfilerTimer timer = profileTimers[i];
@@ -146,7 +145,8 @@ void endAndPrintProfiler() {
 
     if (timer.exclusive > 0) {
       fprintf(perfChannel, "  %d. ", count++);
-      PrintTimeElapsed(timer.label, totalElapsed, timer.total, timer.exclusive);
+      PrintTimeElapsed(timer.label, totalElapsed, timer);
     }
   }
+#endif
 }
