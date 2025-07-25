@@ -24,6 +24,8 @@ typedef struct ProfilerTimer {
 
 } ProfilerTimer;
 
+#define PROFILER
+
 #ifndef PROFILER
 #define ProfilerMagic
 #else
