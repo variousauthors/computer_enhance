@@ -16,6 +16,7 @@ typedef struct JSONNode {
   JSONNodeType type;
   struct JSONNode *next;
   struct JSONNode *value;
+  int length; // for array nodes
 
   char *key;
   union scalar {

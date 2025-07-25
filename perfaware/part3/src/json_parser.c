@@ -38,7 +38,6 @@ int object(JSONNode *node);
 int value(JSONNode *node);
 
 int number() {
-  fprintf(verboseChannel, "number\n");
   if (!tryMatch(T_NUMBER)) {
     return 0;
   }
@@ -49,7 +48,6 @@ int number() {
 }
 
 int array(JSONNode *node) {
-  fprintf(verboseChannel, "array\n");
   if (!tryMatch(T_LEFT_BRACKET)) {
     return 0;
   }
@@ -70,6 +68,7 @@ int array(JSONNode *node) {
     // we only assigne keyValuePairs to node->value
     // if there are elements. That way an empty array
     // has node->value == null, which we can test
+    node->length++;
     node->value = firstElement;
 
     snprintf(currentString, sizeof(currentString), "%d", i);
@@ -97,7 +96,6 @@ int array(JSONNode *node) {
 }
 
 int string() {
-  fprintf(verboseChannel, "string\n");
   if (!tryMatch(T_QUOTE)) {
     return 0;
   }
@@ -113,7 +111,6 @@ int string() {
 }
 
 int key(JSONNode *node) {
-  fprintf(verboseChannel, "key\n");
   int result = string();
 
   // allocate the key
@@ -124,7 +121,6 @@ int key(JSONNode *node) {
 }
 
 int value(JSONNode *node) {
-  fprintf(verboseChannel, "value\n");
   Token t = nextToken();
 
   JSONNode *valueNode = (JSONNode *)malloc(sizeof(JSONNode));
@@ -142,13 +138,11 @@ int value(JSONNode *node) {
     return 1;
   }
   case T_LEFT_BRACKET: {
-    fprintf(verboseChannel, "array\n");
     array(valueNode);
 
     return 1;
   }
   case T_NUMBER: {
-    fprintf(verboseChannel, "number\n");
     emitter(currentString);
 
     valueNode->type = JSON_NUMBER;
@@ -158,13 +152,11 @@ int value(JSONNode *node) {
     return 1;
   }
   case T_LEFT_BRACE: {
-    fprintf(verboseChannel, "object\n");
     object(valueNode);
 
     return 1;
   }
   default:
-    fprintf(verboseChannel, "no value\n");
     // if we didn't get one of these we should put it back
     return 0;
   }
@@ -172,7 +164,6 @@ int value(JSONNode *node) {
 
 /** recursively parses a json object from the stream */
 int object(JSONNode *node) {
-  fprintf(verboseChannel, "object\n");
   if (!tryMatch(T_LEFT_BRACE)) {
     return 0;
   }
@@ -187,7 +178,6 @@ int object(JSONNode *node) {
 
   int i = 0;
   while (key(keyValuePairs)) {
-    fprintf(verboseChannel, "matched key\n");
 
     keyValuePairs->type = JSON_PAIR;
 
@@ -216,7 +206,7 @@ int object(JSONNode *node) {
 }
 
 JSONNode *parseJSON() {
-  ProfilerMagic;
+  TimeFunction;
   JSONNode *root = (JSONNode *)malloc(sizeof(JSONNode));
   memset(root, 0, sizeof(JSONNode));
 

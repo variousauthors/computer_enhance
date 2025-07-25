@@ -35,7 +35,7 @@ unsigned long hash(const char *str1, const char *str2) {
 
 ProfilerTimer *currentTimer = &profileTimers[0];
 
-unsigned long start(const char *name) {
+unsigned long start(const char *name, uint64_t bytesProcessed) {
 
   unsigned long parentHash = currentTimer->h;
   unsigned long h = hash(name, "1");
@@ -55,6 +55,7 @@ unsigned long start(const char *name) {
   }
 
   // start this timer
+  timer->processedBytesCount += bytesProcessed;
   timer->active++;
   timer->hits++;
   timer->begin = ReadCPUTimer();
@@ -131,17 +132,39 @@ void endAndPrintProfiler() {
   }
 
 #ifdef PROFILER
+
   int count = 0;
   for (int i = 0; i < MAX_PROFILE_TIMERS; i++) {
     ProfilerTimer timer = profileTimers[i];
+    int printed = 0;
 
     if (timer.active > 0) {
       fprintf(perfChannel, "forgot to end timer: %s\n", timer.label);
     }
 
     if (timer.exclusive > 0) {
+      printed = 1;
       fprintf(perfChannel, "  %d. ", count++);
       PrintTimeElapsed(timer.label, totalElapsed, timer);
+    }
+
+    if (timer.processedBytesCount > 0) {
+      printed = 1;
+      double megabyte = 1024 * 1024;
+      double gigabyte = megabyte * 1024;
+
+      double seconds = (double)timer.total / (double)cpuFreq;
+      double bytesPerSecond =
+          (double)timer.processedBytesCount / (double)seconds;
+      double megabytes = (double)timer.processedBytesCount / (double)megabyte;
+      double gigabytesPerSecond = bytesPerSecond / (double)gigabyte;
+
+      fprintf(perfChannel, "  %.3fmb at %.2fgb/s", megabytes,
+              gigabytesPerSecond);
+    }
+
+    if (printed) {
+      fprintf(perfChannel, "\n");
     }
   }
 #endif

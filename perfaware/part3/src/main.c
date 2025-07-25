@@ -34,44 +34,45 @@ Token toTokenChar(char c) {
   return result;
 }
 
-void sumHaversine(JSONNode *pairs) {
-  ProfilerMagic;
+typedef struct HaversinePair {
+  double x0, y0;
+  double x1, y1;
+} HaversinePair;
+
+int makeHaversinePairs(JSONNode *pairs, HaversinePair *result) {
+  TimeFunction;
   JSONNode *element = pairs->value;
+  uint64_t i = 0;
 
-  if (element == 0) {
-    fprintf(verboseChannel, "empty\n");
-  } else {
-    fprintf(verboseChannel, "values\n");
-    double avg = 0;
-    long count = 0;
+  do {
+    float x0 = getValueByKey(element->value, "x0")->scalar.number;
+    float x1 = getValueByKey(element->value, "x1")->scalar.number;
+    float y0 = getValueByKey(element->value, "y0")->scalar.number;
+    float y1 = getValueByKey(element->value, "y1")->scalar.number;
 
-    do {
-      // each element is a k/v pair like { "0": { "x0": 1, "x1": 2, ... } }
-      // so we getValueByKey of emelement->value
-      fprintf(verboseChannel, "type: %s, key: %s \n",
-              toStringJSONType(element->type), element->key);
+    result[i++] = (HaversinePair){x0, x1, y0, y1};
+  } while ((element = element->next));
 
-      float x0 = getValueByKey(element->value, "x0")->scalar.number;
-      float x1 = getValueByKey(element->value, "x1")->scalar.number;
-      float y0 = getValueByKey(element->value, "y0")->scalar.number;
-      float y1 = getValueByKey(element->value, "y1")->scalar.number;
+  return i;
+}
 
-      fprintf(verboseChannel,
-              "    { \"x0\": %f, \"y0\": %f, \"x1\": %f, \"y1\": %f }%s\n", x0,
-              y0, x1, y1, element->next ? "," : "");
+void sumHaversine(uint64_t count, HaversinePair *pairs) {
+  TimeBandwidth(count * sizeof(HaversinePair));
 
-      double h = ReferenceHaversine(x0, y0, x1, y1, EARTH_RADIUS);
-      avg += h;
-      count++;
+  double avg = 0;
 
-    } while ((element = element->next));
-
-    avg /= count;
-
-    fprintf(stderr, "Input size: %d\n", 123);
-    fprintf(stderr, "Pair count: %ld\n", count);
-    fprintf(stderr, "Haversine sum: %f\n", avg);
+  for (int i = 0; i < count; i++) {
+    HaversinePair pair = pairs[i];
+    double h =
+        ReferenceHaversine(pair.x0, pair.y0, pair.x1, pair.y1, EARTH_RADIUS);
+    avg += h;
   }
+
+  avg /= count;
+
+  fprintf(stderr, "Input size: %d\n", 123);
+  fprintf(stderr, "Pair count: %lld\n", count);
+  fprintf(stderr, "Haversine sum: %f\n", avg);
 }
 
 int main(int argc, char **argv) {
@@ -116,13 +117,13 @@ int main(int argc, char **argv) {
 
   JSONNode *root = parseJSON();
 
-  fprintf(verboseChannel, "hello\n");
   // this is the "value node"
   JSONNode *pairs = getValueByKey(root, "pairs");
 
-  fprintf(verboseChannel, "%s\n", toStringJSONType(pairs->type));
+  HaversinePair *haversinePairs = malloc(pairs->length * sizeof(HaversinePair));
+  uint64_t count = makeHaversinePairs(pairs, haversinePairs);
 
-  sumHaversine(pairs);
+  sumHaversine(count, haversinePairs);
 
   endAndPrintProfiler();
 }
