@@ -17,9 +17,10 @@ typedef struct ProfilerTimer {
   int hits;
   unsigned long h;
   uint64_t begin;
-  uint64_t elapsed;
-  uint64_t elapsedNoChildren;
-  uint64_t accumulator;
+  uint64_t initTime;
+
+  uint64_t total;
+  uint64_t exclusive;
 
   struct ProfilerTimer *parent;
 

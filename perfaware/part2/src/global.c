@@ -42,26 +42,22 @@ unsigned long start(const char *name) {
   unsigned long h = hash(name, "1");
 
   ProfilerTimer *timer = &profileTimers[h];
-  strcpy(timer->label, name);
+  ProfilerTimer *parentTimer = &profileTimers[parentHash];
 
-  timer->active = 1;
-  timer->hits = 0;
-  timer->h = h;
-  uint64_t begin = now;
-  timer->begin = begin;
+  // stop the parent timer
+  parentTimer->exclusive += now - parentTimer->begin;
+  parentTimer->active--;
 
-  // fprintf(stderr, "start: %s, parent: %ld, h: %ld\n", timer->label,
-  // parentHash,
-  //         h);
+  // init this timer if we need to
+  if (timer->active == 0) {
+    strcpy(timer->label, name);
+    timer->h = h;
+    timer->initTime = now;
+  }
 
-  /* when we start a new timer, we have to pause the parent */
-  uint64_t elapsed = (now - currentTimer->begin);
-  currentTimer->elapsed += elapsed;
-  currentTimer->accumulator += elapsed;
-  currentTimer->elapsedNoChildren += elapsed;
-
-  // fprintf(stderr, "  start: adding to %s: %lld\n", currentTimer->label,
-  //         elapsed);
+  // start this timer
+  timer->active++;
+  timer->begin = now;
 
   currentTimer = timer;
 
@@ -77,39 +73,33 @@ void stop(unsigned long *hashes) {
   ProfilerTimer *timer = &profileTimers[h];
   ProfilerTimer *parentTimer = &profileTimers[parentHash];
 
-  // fprintf(stderr, "stop: %s, parent: %ld, h: %ld\n", timer->label,
-  // parentHash,
-  //         h);
-
   if (timer->label[0] == 0) {
     fprintf(perfChannel, "tried to update a timer that did not exist\n");
     return;
   }
 
-  timer->active = 0;
-  uint64_t end = now;
-  uint64_t elapsed = (end - timer->begin);
-  timer->accumulator += elapsed;
-  timer->elapsed += elapsed;
-  timer->elapsedNoChildren += elapsed;
+  // stop this timer
+  timer->active--;
+  timer->exclusive += now - timer->begin;
 
-  // fprintf(stderr, "  stop: adding to %s: %lld\n", timer->label, elapsed);
-
-  parentTimer->begin = now;
-
-  if (parentTimer != timer) {
-    // it adds in the time from this (child) timer
-    parentTimer->elapsed += timer->accumulator;
-    parentTimer->accumulator += timer->accumulator;
-    // fprintf(stderr, "  stop: adding to %s: %lld\n", parentTimer->label,
-    //         timer->accumulator);
-    timer->accumulator = 0;
+  if (timer->active == 0) {
+    // record total
+    timer->total += now - timer->initTime;
   }
+
+  // start the parent
+  parentTimer->active++;
+  parentTimer->begin = now;
 
   currentTimer = parentTimer;
 }
 
+uint64_t profilerStartTime;
+
 void beginProfiler() {
+  uint64_t now = ReadCPUTimer();
+  profilerStartTime = now;
+
   if (!perf) {
     return;
   }
@@ -117,21 +107,27 @@ void beginProfiler() {
   ProfilerTimer *timer = &profileTimers[0];
 
   strcpy(timer->label, "main");
-  timer->active = 1;
-  timer->hits = 0;
+  timer->active++;
   timer->h = 0;
-  uint64_t begin = ReadCPUTimer();
-  timer->begin = begin;
+  timer->begin = now;
+  timer->initTime = now;
 
   cpuFreq = EstimateCPUTimerFreq();
+  currentTimer = timer;
 }
 
 void endAndPrintProfiler() {
+  uint64_t now = ReadCPUTimer();
   ProfilerTimer *timer = &profileTimers[0];
+
+  // stop the root timer
+  timer->exclusive += now - timer->begin;
+  timer->active--;
+  timer->total = now - timer->initTime;
 
   fprintf(perfChannel, "\nprofiler timers:\n");
 
-  uint64_t totalElapsed = timer->elapsed;
+  uint64_t totalElapsed = now - profilerStartTime;
 
   fprintf(perfChannel, "total ticks: %lld", totalElapsed);
 
@@ -148,10 +144,9 @@ void endAndPrintProfiler() {
       fprintf(perfChannel, "forgot to end timer: %s\n", timer.label);
     }
 
-    if (timer.elapsed > 0) {
+    if (timer.exclusive > 0) {
       fprintf(perfChannel, "  %d. ", count++);
-      PrintTimeElapsed(timer.label, totalElapsed, timer.elapsed,
-                       timer.elapsedNoChildren);
+      PrintTimeElapsed(timer.label, totalElapsed, timer.total, timer.exclusive);
     }
   }
 }
