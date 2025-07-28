@@ -6,6 +6,7 @@
 char currentString[1024];
 
 FILE *source;
+char *buffer;
 
 typedef enum Token {
   T_NONE,
@@ -24,6 +25,7 @@ typedef enum Token {
   T_ERROR,
 } Token;
 
+void initTokenizer(char *filename);
 Token nextToken();
 int tryMatch(Token token);
 void match(Token token);

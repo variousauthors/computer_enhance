@@ -7,7 +7,23 @@
 int isString(char c) { return isalnum(c); }
 int isNumber(char c) { return isnumber(c); }
 
-void consume() { getc(source); }
+FILE *source;
+char *buffer;
+
+// #define SOURCE_END (-1)
+// char getChar() { return getc(source); }
+// void consume() { getChar(); }
+// void ungetChar(char c) { ungetc(c, source); }
+
+// void initTokenizer(char *filename) { source = fopen(filename, "rb"); }
+
+/* faster to read from buffer */
+#define SOURCE_END ('\0')
+char getChar() { return *buffer++; }
+void consume() { getChar(); }
+void ungetChar(char c) { buffer -= 1; }
+
+void initTokenizer(char *filename) { buffer = read_file(filename); }
 
 char *toStringToken(Token token) {
   switch (token) {
@@ -73,7 +89,7 @@ Token nextToken() {
   char c;
   Token result = T_ERROR;
 
-  while ((c = getc(source)) != EOF) {
+  while ((c = getChar()) != SOURCE_END) {
     fprintf(verboseChannel, "considering %c\n", c);
 
     if (c == ' ' || c == '\n') {
@@ -114,10 +130,10 @@ Token nextToken() {
       if (c == '-') {
         currentString[i++] = c;
       } else {
-        ungetc(c, source);
+        ungetChar(c);
       }
 
-      while (isNumber(c = getc(source))) {
+      while (isNumber(c = getChar())) {
         fprintf(verboseChannel, "  -> considering %c\n", c);
         currentString[i++] = c;
       }
@@ -126,7 +142,7 @@ Token nextToken() {
         currentString[i++] = c;
 
         // after the dot
-        while (isNumber(c = getc(source))) {
+        while (isNumber(c = getChar())) {
           fprintf(verboseChannel, "  -> considering %c\n", c);
           currentString[i++] = c;
         }
@@ -136,7 +152,7 @@ Token nextToken() {
       currentString[i] = '\0';
 
       // there is not terminator to put back, in this case
-      // ungetc(c, source);
+      // ungetChar(c);
 
       result = T_NUMBER;
       break;
@@ -145,9 +161,9 @@ Token nextToken() {
     case 'A' ... 'Z': {
       fprintf(verboseChannel, "T_STRING\n");
       // put the char back to simplify the loop
-      ungetc(c, source);
+      ungetChar(c);
       int i = 0;
-      while (isString(c = getc(source))) {
+      while (isString(c = getChar())) {
         fprintf(verboseChannel, "  -> considering %c\n", c);
         currentString[i++] = c;
       }
@@ -157,11 +173,11 @@ Token nextToken() {
 
       // we have no quote to put back, unlike
       // in string below...
-      // so that ungetc below will put the
+      // so that ungetChar below will put the
       // end of the string back
       // so that when the caller "consumes"
       // they will be consuming the end of the string
-      ungetc(c, source);
+      ungetChar(c);
 
       result = T_STRING;
       break;
@@ -176,7 +192,7 @@ Token nextToken() {
       // we always unget because it is the job of "consume" to consume the
       // tokens
       fprintf(verboseChannel, "  -> putting %c back\n", c);
-      ungetc(c, source);
+      ungetChar(c);
       fprintf(verboseChannel, "got %s\n", toStringToken(result));
 
       break;

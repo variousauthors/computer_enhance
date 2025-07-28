@@ -1,6 +1,7 @@
 #include "global.h"
 #include "os_metrics.h"
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 FILE *verboseChannel = 0;
@@ -168,4 +169,50 @@ void endAndPrintProfiler() {
     }
   }
 #endif
+}
+
+char *read_file(const char *filename) {
+  FILE *f = fopen(filename, "rb");
+  if (!f) {
+    perror("fopen");
+    return NULL;
+  }
+
+  // Seek to end to get file size
+  if (fseek(f, 0, SEEK_END) != 0) {
+    perror("fseek");
+    fclose(f);
+    return NULL;
+  }
+
+  long size = ftell(f);
+  if (size < 0) {
+    perror("ftell");
+    fclose(f);
+    return NULL;
+  }
+
+  rewind(f); // Go back to start
+
+  // Allocate buffer (+1 if you want a null terminator)
+  char *buffer = malloc(size + 1);
+  if (!buffer) {
+    perror("malloc");
+    fclose(f);
+    return NULL;
+  }
+
+  // Read file into buffer
+  size_t read = fread(buffer, 1, size, f);
+  if (read != (size_t)size) {
+    perror("fread");
+    free(buffer);
+    fclose(f);
+    return NULL;
+  }
+
+  buffer[size] = '\0'; // Optional null terminator
+
+  fclose(f);
+  return buffer;
 }

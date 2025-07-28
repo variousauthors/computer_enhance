@@ -53,5 +53,6 @@ void stopProfilerTimer(const char *name, const char *id);
 void startProfilerTimer(const char *name, const char *id);
 void beginProfiler();
 void endAndPrintProfiler();
+char *read_file(const char *filename);
 
 #endif

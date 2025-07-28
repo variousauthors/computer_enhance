@@ -21,13 +21,6 @@
 
 #define EARTH_RADIUS 6317
 
-char peek() {
-  char c = getc(source);
-  ungetc(c, source);
-
-  return c;
-}
-
 Token toTokenChar(char c) {
   Token result;
 
@@ -112,10 +105,13 @@ int main(int argc, char **argv) {
 
   char *answers = argv[argc - 1];
   char *in = argv[argc - 2];
-  source = fopen(in, "rb");
+
+  initTokenizer(in);
   Token next;
 
+  fprintf(stderr, "before\n");
   JSONNode *root = parseJSON();
+  fprintf(stderr, "after\n");
 
   // this is the "value node"
   JSONNode *pairs = getValueByKey(root, "pairs");
