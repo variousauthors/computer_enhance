@@ -3,6 +3,7 @@
 #include <mach/mach_time.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <sys/resource.h>
 #include <sys/time.h>
 
 uint64_t GetOSTimerFreq(void) { return 1000000; }
@@ -41,6 +42,21 @@ void PrintTimeElapsed(char const *Label, uint64_t TotalTSCElapsed,
 
   fprintf(perfChannel, "%-15s[%d] %-16llu (%6.2f%%) (w/ children: %6.2f%%)",
           Label, timer.hits, Elapsed, Percent, PercentWithChildren);
+}
+
+uint64_t ReadOSPageFaultCount(void) {
+  // NOTE(casey): The course materials are not tested on MacOS/Linux.
+  // This code was contributed to the public github. It may or may not work
+  // for your system.
+
+  struct rusage Usage = {};
+  getrusage(RUSAGE_SELF, &Usage);
+
+  // ru_minflt  the number of page faults serviced without any I/O activity.
+  // ru_majflt  the number of page faults serviced that required I/O activity.
+  uint64_t Result = Usage.ru_minflt + Usage.ru_majflt;
+
+  return Result;
 }
 
 uint64_t EstimateCPUTimerFreq(void) {

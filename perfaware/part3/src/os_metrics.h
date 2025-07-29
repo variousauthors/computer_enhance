@@ -10,5 +10,6 @@ uint64_t GetOSTimerFreq(void);
 void PrintTimeElapsed(char const *Label, uint64_t TotalTSCElapsed,
                       ProfilerTimer timer);
 uint64_t EstimateCPUTimerFreq(void);
+uint64_t ReadOSPageFaultCount(void);
 
 #endif
