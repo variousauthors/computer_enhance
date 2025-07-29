@@ -117,7 +117,7 @@ void runRepetitionTester() {
     StateRepetitionTester *state = subject->state;
     ResultRepetitionTester *result = subject->result;
 
-    fprintf(stderr, "wtf\n");
+    subject->setup();
 
     for (;;) {
       char *buffer;
@@ -159,14 +159,18 @@ void readFile() { char *buffer = read_file("in.json"); }
 
 void NO_SETUP() {}
 
-int main() {
+int main(int arc, char **argv) {
+  int maxTime = 10;
+  maxTime = atoi(argv[arc - 1]);
+
   SubectUnderTestRepetitionTester *readFileTest =
-      initSubectUnderTestRepetitionTester("readFile", readFile,
-                                          readFileNoMallocSetup, FILE_SIZE, 10);
+      initSubectUnderTestRepetitionTester("readFile", readFile, NO_SETUP,
+                                          FILE_SIZE, maxTime);
 
   SubectUnderTestRepetitionTester *readFileNoMallocTest =
       initSubectUnderTestRepetitionTester("readFileNoMalloc", readFileNoMalloc,
-                                          NO_SETUP, FILE_SIZE, 10);
+                                          readFileNoMallocSetup, FILE_SIZE,
+                                          maxTime);
 
   subjects[0] = readFileNoMallocTest;
   subjects[1] = readFileTest;
