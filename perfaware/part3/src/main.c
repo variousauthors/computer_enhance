@@ -22,11 +22,11 @@ int main(int arc, char **argv) {
   maxTime = atoi(argv[arc - 1]);
 
   SubectUnderTestRepetitionTester *readFileTest =
-      initSubectUnderTestRepetitionTester("readFile", readFile, NO_SETUP,
-                                          FILE_SIZE, maxTime);
+      initSubectUnderTestRepetitionTester("malloc + readFile", readFile,
+                                          NO_SETUP, FILE_SIZE, maxTime);
 
   SubectUnderTestRepetitionTester *readFileNoMallocTest =
-      initSubectUnderTestRepetitionTester("readFileNoMalloc", readFileNoMalloc,
+      initSubectUnderTestRepetitionTester("readFile", readFileNoMalloc,
                                           readFileNoMallocSetup, FILE_SIZE,
                                           maxTime);
 

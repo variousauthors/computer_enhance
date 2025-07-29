@@ -15,43 +15,46 @@ void printSingleTiming(char *label, double t, uint64_t cpuFreq,
   double minMs = 1000.0 * t / (double)cpuFreq;
   int mbPerRun = bytesPerRun / MEGABYTE;
   double gbPerRun = bytesPerRun / GIGABYTE;
+  double pfPerKb = bytesPerRun / pageFaults;
 
-  fprintf(
-      stderr,
-      "%s: %10.4fms (CPU freq %llu) (%dmb processed at %fgb/s) (PF: %lld)\n",
-      label, minMs, cpuFreq, mbPerRun, gbPerRun / minMs * 1000, pageFaults);
+  if (pageFaults) {
+    fprintf(stderr,
+            "%s: %10.4fms (CPU freq %llu) (%d mb processed at %0.2f gb/s) (PF: "
+            "%lld,  %0.2f bytes/pf)\n",
+            label, minMs, cpuFreq, mbPerRun, gbPerRun / minMs * 1000,
+            pageFaults, pfPerKb);
+  } else {
+    fprintf(stderr,
+            "%s: %10.4fms (CPU freq %llu) (%d mb processed at %0.2f gb/s)\n",
+            label, minMs, cpuFreq, mbPerRun, gbPerRun / minMs * 1000);
+  }
 }
 
 void printResultRepetitionTester(SubectUnderTestRepetitionTester *subject) {
-  ResultRepetitionTester result = *subject->result;
+  ResultRepetitionTester min = *subject->min;
+  ResultRepetitionTester max = *subject->max;
+  ResultRepetitionTester avg = *subject->average;
   StateRepetitionTester state = *subject->state;
 
-  uint64_t megabyte = 1024 * 1024;
-  uint64_t gigabyte = megabyte * 1024;
-  double minMs = 1000.0 * (double)result.min / (double)state.cpuFreq;
-  double mbPerRun = (double)state.bytesPerRun / megabyte;
-  double gbPerRun = (double)state.bytesPerRun / gigabyte;
-
-  fprintf(stderr, "%s:\n", subject->label);
-  printSingleTiming("  min", result.min, state.cpuFreq, state.bytesPerRun,
-                    state.pageFaults);
-  printSingleTiming("  max", result.max, state.cpuFreq, state.bytesPerRun,
-                    state.pageFaults);
-  printSingleTiming("  avg", result.average, state.cpuFreq, state.bytesPerRun,
-                    state.pageFaults);
+  fprintf(stderr, "\n--- %s ---\n", subject->label);
+  printSingleTiming("  min", min.time, state.cpuFreq, min.bytes,
+                    min.pageFaults);
+  printSingleTiming("  max", max.time, state.cpuFreq, max.bytes,
+                    max.pageFaults);
+  printSingleTiming("  avg", avg.time, state.cpuFreq, avg.bytes,
+                    avg.pageFaults);
 }
 
 void initResultRepetitionTester(ResultRepetitionTester *result) {
-  result->max = 0;
-  result->min = UINT64_MAX;
-  result->average = 0;
+  result->time = 0;
+  result->pageFaults = 0;
+  result->bytes = 0;
 }
 
 void initStateRepetitionTester(StateRepetitionTester *state,
                                uint64_t bytesPerRun, uint64_t maxTimeSeconds) {
   state->runs = 0;
   state->timer = 0;
-  state->pageFaults = 0;
   state->cpuFreq = EstimateCPUTimerFreq();
   state->timerMax = state->cpuFreq * maxTimeSeconds;
   state->bytesPerRun = bytesPerRun;
@@ -63,16 +66,23 @@ initSubectUnderTestRepetitionTester(char *label, void (*func)(),
                                     uint64_t maxTimeSeconds) {
   SubectUnderTestRepetitionTester *subject =
       malloc(sizeof(SubectUnderTestRepetitionTester));
-  ResultRepetitionTester *result = malloc(sizeof(ResultRepetitionTester));
+  ResultRepetitionTester *min = malloc(sizeof(ResultRepetitionTester));
+  ResultRepetitionTester *max = malloc(sizeof(ResultRepetitionTester));
+  ResultRepetitionTester *average = malloc(sizeof(ResultRepetitionTester));
   StateRepetitionTester *state = malloc(sizeof(StateRepetitionTester));
 
-  initResultRepetitionTester(result);
+  initResultRepetitionTester(min);
+  initResultRepetitionTester(max);
+  initResultRepetitionTester(average);
   initStateRepetitionTester(state, bytesPerRun, maxTimeSeconds);
 
   subject->func = func;
   subject->setup = setup;
   subject->state = state;
-  subject->result = result;
+  subject->min = min;
+  subject->min->time = UINT64_MAX;
+  subject->max = max;
+  subject->average = average;
   subject->label = label;
 
   return subject;
@@ -90,7 +100,6 @@ void runRepetitionTester() {
   for (int i = 0; i < ArrayCount(subjects); i++) {
     SubectUnderTestRepetitionTester *subject = subjects[i];
     StateRepetitionTester *state = subject->state;
-    ResultRepetitionTester *result = subject->result;
 
     subject->setup();
     int initialRun = 1;
@@ -103,23 +112,29 @@ void runRepetitionTester() {
       uint64_t t = ReadCPUTimer() - start;
       uint64_t pf = ReadOSPageFaultCount() - initialPF;
 
-      if (initialRun) {
-        state->pageFaults = pf;
-        initialRun = 0;
-      }
-
-      if (t < result->min) {
-        result->min = t;
+      if (t < subject->min->time) {
+        subject->min->time = t;
+        subject->min->pageFaults = pf;
+        subject->min->bytes = state->bytesPerRun;
         state->timer = 0; // reset timer every time we find a new min
       }
 
-      if (t > result->max) {
-        result->max = t;
+      if (t > subject->max->time) {
+        subject->max->time = t;
+        subject->max->pageFaults = pf;
+        subject->max->bytes = state->bytesPerRun;
       }
 
       // calculate the next average
-      result->average =
-          ((result->average * state->runs) + t) / ((state->runs) + 1);
+      subject->average->time =
+          ((subject->average->time * state->runs) + t) / ((state->runs) + 1);
+      subject->average->pageFaults =
+          ((subject->average->pageFaults * state->runs) + pf) /
+          ((state->runs) + 1);
+      subject->average->bytes =
+          ((subject->average->bytes * state->runs) + state->bytesPerRun) /
+          ((state->runs) + 1);
+
       state->timer += t;
       state->runs++;
 
