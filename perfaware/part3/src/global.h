@@ -54,5 +54,6 @@ void startProfilerTimer(const char *name, const char *id);
 void beginProfiler();
 void endAndPrintProfiler();
 char *read_file(const char *filename);
+char *read_file_no_malloc(const char *filename, char *buffer);
 
 #endif
