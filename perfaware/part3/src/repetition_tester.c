@@ -60,10 +60,9 @@ void initStateRepetitionTester(StateRepetitionTester *state,
   state->bytesPerRun = bytesPerRun;
 }
 
-SubectUnderTestRepetitionTester *
-initSubectUnderTestRepetitionTester(char *label, void (*func)(),
-                                    void (*setup)(), uint64_t bytesPerRun,
-                                    uint64_t maxTimeSeconds) {
+SubectUnderTestRepetitionTester *initSubectUnderTestRepetitionTester(
+    char *label, void (*func)(), void (*setup)(), void(*teardown),
+    uint64_t bytesPerRun, uint64_t maxTimeSeconds) {
   SubectUnderTestRepetitionTester *subject =
       malloc(sizeof(SubectUnderTestRepetitionTester));
   ResultRepetitionTester *min = malloc(sizeof(ResultRepetitionTester));
@@ -78,6 +77,7 @@ initSubectUnderTestRepetitionTester(char *label, void (*func)(),
 
   subject->func = func;
   subject->setup = setup;
+  subject->teardown = teardown;
   subject->state = state;
   subject->min = min;
   subject->min->time = UINT64_MAX;
@@ -88,10 +88,16 @@ initSubectUnderTestRepetitionTester(char *label, void (*func)(),
   return subject;
 }
 
-SubectUnderTestRepetitionTester *subjects[2];
+SubectUnderTestRepetitionTester *EMPTY_SUBJECT_UNDER_TEST_REPETITION_TESTER = 0;
+
+SubectUnderTestRepetitionTester *subjects[4];
 
 void printResultsRepetitiontester() {
   for (int i = 0; i < ArrayCount(subjects); i++) {
+    if (subjects[i] == EMPTY_SUBJECT_UNDER_TEST_REPETITION_TESTER) {
+      continue;
+    }
+
     printResultRepetitionTester(subjects[i]);
   }
 }
@@ -99,18 +105,25 @@ void printResultsRepetitiontester() {
 void runRepetitionTester() {
   for (int i = 0; i < ArrayCount(subjects); i++) {
     SubectUnderTestRepetitionTester *subject = subjects[i];
+
+    if (subject == EMPTY_SUBJECT_UNDER_TEST_REPETITION_TESTER) {
+      continue;
+    }
+
     StateRepetitionTester *state = subject->state;
 
-    subject->setup();
     int initialRun = 1;
+    subject->setup();
 
     for (;;) {
-      char *buffer;
+
       uint64_t initialPF = ReadOSPageFaultCount();
       uint64_t start = ReadCPUTimer();
       subject->func();
       uint64_t t = ReadCPUTimer() - start;
       uint64_t pf = ReadOSPageFaultCount() - initialPF;
+
+      subject->teardown();
 
       if (t < subject->min->time) {
         subject->min->time = t;
@@ -144,5 +157,3 @@ void runRepetitionTester() {
     }
   }
 }
-
-/** tests */

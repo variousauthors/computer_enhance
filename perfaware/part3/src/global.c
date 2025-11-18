@@ -97,6 +97,33 @@ void stop(unsigned long *hashes) {
 
 uint64_t profilerStartTime;
 
+void processArgs(int argc, char **argv) {
+  for (int i = 1; i < argc; i++) {
+    if (strcmp(argv[i], "-v") == 0) {
+      verbose = 1;
+    }
+
+    if (strcmp(argv[i], "-perf") == 0) {
+      perf = 1;
+    }
+
+    if (strcmp(argv[i], "-emit") == 0) {
+      emit = 1;
+    }
+  }
+
+  if (verbose) {
+    verboseChannel = stderr;
+    perfChannel = fopen("/dev/null", "w");
+  } else if (perf) {
+    perfChannel = stderr;
+    verboseChannel = fopen("/dev/null", "w");
+  } else {
+    verboseChannel = fopen("/dev/null", "w");
+    perfChannel = fopen("/dev/null", "w");
+  }
+}
+
 void beginProfiler() {
   profilerStartTime = ReadCPUTimer();
 

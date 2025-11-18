@@ -81,5 +81,14 @@ uint64_t EstimateCPUTimerFreq(void) {
     CPUFreq = OSFreq * CPUElapsed / OSElapsed;
   }
 
+  fprintf(verboseChannel, "   OS Timer: %llu -> %llu = %llu elapsed\n", OSStart,
+          OSEnd, OSElapsed);
+  fprintf(verboseChannel, " OS Seconds: %.4f\n",
+          (double)OSElapsed / (double)OSFreq);
+
+  fprintf(verboseChannel, "  CPU Timer: %llu -> %llu = %llu elapsed\n",
+          CPUStart, CPUEnd, CPUElapsed);
+  fprintf(verboseChannel, "   CPU Freq: %llu (guessed)\n", CPUFreq);
+
   return CPUFreq;
 }

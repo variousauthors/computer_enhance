@@ -24,6 +24,7 @@ typedef struct SubectUnderTestRepetitionTester {
   char *label;
   void (*func)();
   void (*setup)();
+  void (*teardown)();
 
   StateRepetitionTester *state;
 
@@ -32,5 +33,7 @@ typedef struct SubectUnderTestRepetitionTester {
   ResultRepetitionTester *average;
 
 } SubectUnderTestRepetitionTester;
+
+SubectUnderTestRepetitionTester *EMPTY_SUBJECT_UNDER_TEST_REPETITION_TESTER;
 
 #endif

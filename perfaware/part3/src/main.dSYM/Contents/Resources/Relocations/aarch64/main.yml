@@ -1,0 +1,58 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/zeigfreid/Github/education/computer-enhance/computer_enhance/perfaware/part3/src/main'
+relocations:
+  - { offset: 0x26, size: 0x8, addend: 0x0, symName: _hash, symObjAddr: 0x0, symBinAddr: 0x100001FB8, symSize: 0xAC }
+  - { offset: 0x3F, size: 0x8, addend: 0x0, symName: _verboseChannel, symObjAddr: 0x6218, symBinAddr: 0x100008020, symSize: 0x0 }
+  - { offset: 0x25E, size: 0x8, addend: 0x0, symName: _perfChannel, symObjAddr: 0x6220, symBinAddr: 0x100008028, symSize: 0x0 }
+  - { offset: 0x273, size: 0x8, addend: 0x0, symName: _profileTimers, symObjAddr: 0x6228, symBinAddr: 0x100008030, symSize: 0x0 }
+  - { offset: 0x33A, size: 0x8, addend: 0x0, symName: _currentProfileTimer, symObjAddr: 0x56228, symBinAddr: 0x100058030, symSize: 0x0 }
+  - { offset: 0x34F, size: 0x8, addend: 0x0, symName: _cpuFreq, symObjAddr: 0x56230, symBinAddr: 0x100058038, symSize: 0x0 }
+  - { offset: 0x364, size: 0x8, addend: 0x0, symName: _currentTimer, symObjAddr: 0x1C80, symBinAddr: 0x100008000, symSize: 0x0 }
+  - { offset: 0x37E, size: 0x8, addend: 0x0, symName: _MEGABYTE, symObjAddr: 0x1C88, symBinAddr: 0x100008008, symSize: 0x0 }
+  - { offset: 0x39A, size: 0x8, addend: 0x0, symName: _GIGABYTE, symObjAddr: 0x1C90, symBinAddr: 0x100008010, symSize: 0x0 }
+  - { offset: 0x3AF, size: 0x8, addend: 0x0, symName: _EMPTY_SUBJECT_UNDER_TEST_REPETITION_TESTER, symObjAddr: 0x56238, symBinAddr: 0x100058040, symSize: 0x0 }
+  - { offset: 0x4D7, size: 0x8, addend: 0x0, symName: _s, symObjAddr: 0x1C98, symBinAddr: 0x100008018, symSize: 0x0 }
+  - { offset: 0x4FE, size: 0x8, addend: 0x0, symName: _emit, symBinAddr: 0x100058050, symSize: 0x0 }
+  - { offset: 0x513, size: 0x8, addend: 0x0, symName: _verbose, symBinAddr: 0x100058090, symSize: 0x0 }
+  - { offset: 0x528, size: 0x8, addend: 0x0, symName: _perf, symBinAddr: 0x100058054, symSize: 0x0 }
+  - { offset: 0x53D, size: 0x8, addend: 0x0, symName: _profilerStartTime, symBinAddr: 0x100058058, symSize: 0x0 }
+  - { offset: 0x552, size: 0x8, addend: 0x0, symName: _subjects, symBinAddr: 0x100058060, symSize: 0x0 }
+  - { offset: 0x573, size: 0x8, addend: 0x0, symName: _buffer, symBinAddr: 0x100058048, symSize: 0x0 }
+  - { offset: 0x588, size: 0x8, addend: 0x0, symName: _touchEveryBytePtr, symBinAddr: 0x100058080, symSize: 0x0 }
+  - { offset: 0x59D, size: 0x8, addend: 0x0, symName: _touchEveryByteWithMallocPtr, symBinAddr: 0x100058088, symSize: 0x0 }
+  - { offset: 0x5BC, size: 0x8, addend: 0x0, symName: _hash, symObjAddr: 0x0, symBinAddr: 0x100001FB8, symSize: 0xAC }
+  - { offset: 0x60E, size: 0x8, addend: 0x0, symName: _start, symObjAddr: 0xAC, symBinAddr: 0x100002064, symSize: 0x140 }
+  - { offset: 0x67C, size: 0x8, addend: 0x0, symName: _ReadCPUTimer, symObjAddr: 0x1EC, symBinAddr: 0x1000021A4, symSize: 0x18 }
+  - { offset: 0x695, size: 0x8, addend: 0x0, symName: _stop, symObjAddr: 0x204, symBinAddr: 0x1000021BC, symSize: 0x134 }
+  - { offset: 0x6F1, size: 0x8, addend: 0x0, symName: _beginProfiler, symObjAddr: 0x338, symBinAddr: 0x1000022F0, symSize: 0xC4 }
+  - { offset: 0x715, size: 0x8, addend: 0x0, symName: _EstimateCPUTimerFreq, symObjAddr: 0x3FC, symBinAddr: 0x1000023B4, symSize: 0xE0 }
+  - { offset: 0x7BB, size: 0x8, addend: 0x0, symName: _endAndPrintProfiler, symObjAddr: 0x4DC, symBinAddr: 0x100002494, symSize: 0x320 }
+  - { offset: 0x8AC, size: 0x8, addend: 0x0, symName: _PrintTimeElapsed, symObjAddr: 0x7FC, symBinAddr: 0x1000027B4, symSize: 0xBC }
+  - { offset: 0x925, size: 0x8, addend: 0x0, symName: _read_file_no_alloc, symObjAddr: 0x8B8, symBinAddr: 0x100002870, symSize: 0x180 }
+  - { offset: 0x985, size: 0x8, addend: 0x0, symName: _read_file, symObjAddr: 0xA38, symBinAddr: 0x1000029F0, symSize: 0x194 }
+  - { offset: 0x9E5, size: 0x8, addend: 0x0, symName: _GetOSTimerFreq, symObjAddr: 0xBCC, symBinAddr: 0x100002B84, symSize: 0xC }
+  - { offset: 0x9FE, size: 0x8, addend: 0x0, symName: _ReadOSTimer, symObjAddr: 0xBD8, symBinAddr: 0x100002B90, symSize: 0x40 }
+  - { offset: 0xA34, size: 0x8, addend: 0x0, symName: _ReadOSPageFaultCount, symObjAddr: 0xC18, symBinAddr: 0x100002BD0, symSize: 0x50 }
+  - { offset: 0xA6A, size: 0x8, addend: 0x0, symName: _printSingleTiming, symObjAddr: 0xC68, symBinAddr: 0x100002C20, symSize: 0x170 }
+  - { offset: 0xAFF, size: 0x8, addend: 0x0, symName: _printResultRepetitionTester, symObjAddr: 0xDD8, symBinAddr: 0x100002D90, symSize: 0x10C }
+  - { offset: 0xB5B, size: 0x8, addend: 0x0, symName: _initResultRepetitionTester, symObjAddr: 0xEE4, symBinAddr: 0x100002E9C, symSize: 0x28 }
+  - { offset: 0xB7F, size: 0x8, addend: 0x0, symName: _initStateRepetitionTester, symObjAddr: 0xF0C, symBinAddr: 0x100002EC4, symSize: 0x64 }
+  - { offset: 0xBBF, size: 0x8, addend: 0x0, symName: _initSubectUnderTestRepetitionTester, symObjAddr: 0xF70, symBinAddr: 0x100002F28, symSize: 0x114 }
+  - { offset: 0xC73, size: 0x8, addend: 0x0, symName: _printResultsRepetitiontester, symObjAddr: 0x1084, symBinAddr: 0x10000303C, symSize: 0x88 }
+  - { offset: 0xCA5, size: 0x8, addend: 0x0, symName: _runRepetitionTester, symObjAddr: 0x110C, symBinAddr: 0x1000030C4, symSize: 0x2EC }
+  - { offset: 0xD55, size: 0x8, addend: 0x0, symName: _printBits, symObjAddr: 0x13F8, symBinAddr: 0x1000033B0, symSize: 0x278 }
+  - { offset: 0xE83, size: 0x8, addend: 0x0, symName: _printPointerDecomposition, symObjAddr: 0x1670, symBinAddr: 0x100003628, symSize: 0x78 }
+  - { offset: 0xEFB, size: 0x8, addend: 0x0, symName: _readFileNoMallocSetup, symObjAddr: 0x16E8, symBinAddr: 0x1000036A0, symSize: 0x28 }
+  - { offset: 0xF10, size: 0x8, addend: 0x0, symName: _readFileNoMalloc, symObjAddr: 0x1710, symBinAddr: 0x1000036C8, symSize: 0x28 }
+  - { offset: 0xF25, size: 0x8, addend: 0x0, symName: _readFile, symObjAddr: 0x1738, symBinAddr: 0x1000036F0, symSize: 0x28 }
+  - { offset: 0xF49, size: 0x8, addend: 0x0, symName: _nPageFaults, symObjAddr: 0x1760, symBinAddr: 0x100003718, symSize: 0x80 }
+  - { offset: 0xF89, size: 0x8, addend: 0x0, symName: _onePageFault, symObjAddr: 0x17E0, symBinAddr: 0x100003798, symSize: 0x44 }
+  - { offset: 0xFAD, size: 0x8, addend: 0x0, symName: _touchEveryByteSetup, symObjAddr: 0x1824, symBinAddr: 0x1000037DC, symSize: 0x40 }
+  - { offset: 0xFC2, size: 0x8, addend: 0x0, symName: _touchEveryByte, symObjAddr: 0x1864, symBinAddr: 0x10000381C, symSize: 0x68 }
+  - { offset: 0x1002, size: 0x8, addend: 0x0, symName: _touchEveryByteWithMalloc, symObjAddr: 0x18CC, symBinAddr: 0x100003884, symSize: 0x9C }
+  - { offset: 0x1042, size: 0x8, addend: 0x0, symName: _touchEveryByteWithMallocTeardown, symObjAddr: 0x1968, symBinAddr: 0x100003920, symSize: 0x2C }
+  - { offset: 0x1057, size: 0x8, addend: 0x0, symName: _fillMemory, symObjAddr: 0x1994, symBinAddr: 0x10000394C, symSize: 0x11C }
+  - { offset: 0x10A5, size: 0x8, addend: 0x0, symName: _NO_SETUP, symObjAddr: 0x1AB0, symBinAddr: 0x100003A68, symSize: 0x4 }
+  - { offset: 0x10BA, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x1AB4, symBinAddr: 0x100003A6C, symSize: 0x1A4 }
+...
